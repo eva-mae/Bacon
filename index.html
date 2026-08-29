@@ -680,6 +680,7 @@ function renderPlanner(){
 }
 
 function renderPicker(){
+  document.querySelectorAll(".overlay").forEach(el=>el.remove());
   const day = state.pickerFor;
   const overlay = document.createElement("div");
   overlay.className = "overlay";
@@ -714,10 +715,10 @@ function renderPicker(){
     </div>
   `;
   document.body.appendChild(overlay);
-  overlay.onclick = (e)=>{ if(e.target===overlay){ state.pickerFor=null; document.body.removeChild(overlay); } };
-  document.getElementById("closepicker").onclick = ()=>{ state.pickerFor=null; document.body.removeChild(overlay); };
+  overlay.onclick = (e)=>{ if(e.target===overlay){ state.pickerFor=null; overlay.remove(); } };
+  overlay.querySelector("#closepicker").onclick = ()=>{ state.pickerFor=null; overlay.remove(); };
   overlay.querySelectorAll("[data-pcatf]").forEach(b=>{
-    b.onclick = ()=>{ state.pickerCat = b.dataset.pcatf; document.body.removeChild(overlay); renderPicker(); };
+    b.onclick = ()=>{ state.pickerCat = b.dataset.pcatf; overlay.remove(); renderPicker(); };
   });
   overlay.querySelectorAll("[data-pdelta]").forEach(b=>{
     b.onclick = ()=>{
@@ -726,8 +727,8 @@ function renderPicker(){
       const cur = state.pickerServ[rid] || r.servings;
       const next = Math.max(1, cur + parseInt(b.dataset.pdelta,10));
       state.pickerServ[rid] = next;
-      document.body.removeChild(overlay);
-      renderPicker();
+      const label = b.closest(".servctl").querySelector(".servlabel");
+      if(label) label.textContent = next;
     };
   });
   overlay.querySelectorAll("[data-addmeal]").forEach(b=>{
@@ -737,9 +738,10 @@ function renderPicker(){
       const servings = state.pickerServ[rid] || r.servings;
       state.plan[day] = state.plan[day] || [];
       state.plan[day].push({id:rid, servings});
+      state.pickerFor = null;
       syncToCloud();
-      document.body.removeChild(overlay);
-      renderPicker();
+      overlay.remove();
+      render();
     };
   });
 }
@@ -773,9 +775,10 @@ function renderPantry(){
     }).join("")}
 
     <div class="secblock" style="border-color:var(--plum);">
-      <div class="sechead" style="background:var(--plum-bg);color:var(--plum)">Weekly Extras &middot; not tied to a recipe</div>
+      <div class="sechead" style="background:var(--plum-bg);color:var(--plum)">Other Items &middot; not tied to a recipe</div>
+      ${extraAddRow()}
       <div class="pantrylist">
-        ${state.extras.length===0? `<div class="prow"><span style="color:var(--ink-soft);font-style:italic;">No extras added yet &mdash; chips, crackers, frozen fruit, snacks, anything else you need this week. Add them from the Grocery tab.</span></div>` :
+        ${state.extras.length===0? `<div class="prow"><span style="color:var(--ink-soft);font-style:italic;">No extras added yet &mdash; chips, crackers, frozen fruit, snacks, anything else you need this week. Mark them Need when you're ready to buy them &mdash; they'll show up on your Grocery List.</span></div>` :
           state.extras.map((ex)=>{
             const st = state.pantry[ex.name.toLowerCase()] || "need";
             return `<div class="prow">
@@ -822,12 +825,8 @@ function renderGrocery(){
   if(!hasAnyMeals && !hasExtras){
     return `
       <p class="section-title">Grocery List</p>
-      <p class="section-sub">Built automatically from your Weekly Planner, plus anything else you add below.</p>
-      <div class="empty">Nothing planned yet &mdash; add meals in the Planner tab, or add an item below and your list builds itself here, grouped by grocery section.</div>
-      <div class="secblock" style="border-color:var(--plum);margin-top:18px;">
-        <div class="sechead" style="background:var(--plum-bg);color:var(--plum)">Other Items &middot; not tied to a recipe</div>
-        ${extraAddRow()}
-      </div>
+      <p class="section-sub">Built automatically from your Weekly Planner and anything marked Need in Pantry's Other Items.</p>
+      <div class="empty">Nothing planned yet &mdash; add meals in the Planner tab, or add items in the Pantry tab and mark them Need.</div>
     `;
   }
   const agg = new Map();
@@ -865,10 +864,11 @@ function renderGrocery(){
   state.extras.forEach(ex=> combined.push({
     name: cap(ex.name), lookup: ex.name.toLowerCase(), display: cap(ex.name), sources: ["Weekly Extra"], section: ex.section
   }));
-  const need = combined.filter(it=> (state.pantry[it.lookup]||"need") !== "have");
-  const have = combined.filter(it=> (state.pantry[it.lookup]||"need") === "have");
-  const mealNeed = need.filter(it=> !it.sources.includes("Weekly Extra"));
-  const extraNeed = need.filter(it=> it.sources.includes("Weekly Extra"));
+  const mealCombined = combined.filter(it=> !it.sources.includes("Weekly Extra"));
+  const extraCombined = combined.filter(it=> it.sources.includes("Weekly Extra"));
+  const mealNeed = mealCombined.filter(it=> (state.pantry[it.lookup]||"need") !== "have");
+  const have = mealCombined.filter(it=> (state.pantry[it.lookup]||"need") === "have");
+  const extraNeed = extraCombined.filter(it=> (state.pantry[it.lookup]||"need") === "need");
 
   const bySection = {};
   mealNeed.forEach(it=>{
@@ -905,11 +905,7 @@ function renderGrocery(){
     ${mealNeed.length===0? `<div class="empty">No meals planned this week &mdash; add some in the Planner tab.</div>`:""}
 
     <p class="section-title" style="margin-top:28px;">Other Items</p>
-    <p class="section-sub">Sauces, snacks, frozen fruit &mdash; anything you need that's not tied to a recipe, kept separate from your meal groceries above.</p>
-    <div class="secblock" style="border-color:var(--plum);">
-      <div class="sechead" style="background:var(--plum-bg);color:var(--plum)">Add an item</div>
-      ${extraAddRow()}
-    </div>
+    <p class="section-sub">Anything marked Need in Pantry's Other Items &mdash; add and manage them there. Marked Low or Have stays off this list.</p>
     ${SECTION_ORDER.filter(s=>byExtraSection[s]).map(sec=>{
       const col = SECTIONS[sec];
       return `<div class="secblock">
@@ -928,7 +924,7 @@ function renderGrocery(){
         </div>
       </div>`;
     }).join("")}
-    ${extraNeed.length===0? `<div class="empty">No extra items yet &mdash; add one above.</div>`:""}
+    ${extraNeed.length===0? `<div class="empty">Nothing marked Need yet &mdash; add and mark items in the Pantry tab.</div>`:""}
 
     ${have.length? `<div class="secblock havepanel" style="margin-top:28px;">
       <div class="sechead" style="background:var(--sage-bg);color:var(--sage)">Already in your pantry</div>
