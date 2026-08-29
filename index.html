@@ -117,6 +117,12 @@ nav.bottombar button.active{color:var(--ink);font-weight:700;background:var(--pa
 .tag-have{font-size:10px;text-transform:uppercase;letter-spacing:.5px;background:var(--sage-bg);color:var(--sage);padding:2px 7px;border-radius:20px;font-weight:700;}
 .empty{color:var(--ink-soft);font-size:13.5px;padding:30px;text-align:center;border:1px dashed var(--line);border-radius:4px;}
 
+.linkfield{display:flex;align-items:center;gap:8px;}
+.linkfield input{width:150px;padding:5px 6px;border:1px solid var(--line);border-radius:3px;font-family:inherit;font-size:12px;background:var(--card);color:var(--ink-soft);}
+.linkfield input::placeholder{color:var(--ink-soft);opacity:.6;}
+.buybtn{font-family:inherit;font-size:10.5px;text-transform:uppercase;letter-spacing:.5px;border:1.5px solid var(--ink);background:var(--ink);color:var(--parchment);padding:5px 11px;border-radius:20px;cursor:pointer;text-decoration:none;white-space:nowrap;}
+.editlink{cursor:pointer;color:var(--ink-soft);font-size:13px;padding:2px 4px;flex-shrink:0;}
+.editlink:hover{color:var(--ink);}
 .authwrap{max-width:380px;margin:80px auto;padding:0 16px;}
 .authbox{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:24px;}
 .authbox h2{font-family:"Iowan Old Style","Palatino Linotype",Georgia,serif;font-style:italic;margin:0 0 4px;font-size:24px;}
@@ -368,13 +374,44 @@ let state = {
   catFilter:"all",
   plan: Object.fromEntries(DAYS.map(d=>[d,[]])),
   pantry: {},
-  extras: [], // [{name}]
+  extras: [], // [{id,name,section,link}]
   groceryChecked: {},
   servingsOverride: {},
+  itemLinks: {},
+  editingLink: {},
   pickerFor: null,
   pickerCat: "all",
   pickerServ: {}
 };
+
+function getLink(key){
+  if(key.indexOf("pantry:")===0) return state.itemLinks[key.slice(7)] || "";
+  if(key.indexOf("extra:")===0){
+    const ex = state.extras.find(e=>e.id===key.slice(6));
+    return (ex && ex.link) || "";
+  }
+  return "";
+}
+function setLink(key, value){
+  if(key.indexOf("pantry:")===0){
+    const name = key.slice(7);
+    if(value) state.itemLinks[name] = value; else delete state.itemLinks[name];
+  } else if(key.indexOf("extra:")===0){
+    const ex = state.extras.find(e=>e.id===key.slice(6));
+    if(ex){ if(value) ex.link = value; else delete ex.link; }
+  }
+}
+function linkFieldHTML(key){
+  const link = getLink(key);
+  const editing = !!state.editingLink[key];
+  const showInput = !link || editing;
+  return `<div class="linkfield">
+    ${showInput
+      ? `<input type="url" placeholder="paste product link..." data-link="${key}" value="${link}">`
+      : `<a class="buybtn" href="${link}" target="_blank" rel="noopener">Buy Me &#8599;</a><span class="editlink" data-editlink="${key}" title="Change link">&#9998;</span>`
+    }
+  </div>`;
+}
 
 /* ---------------- HELPERS ---------------- */
 function timeTier(total){ return total<=30?1:(total<=90?2:3); }
@@ -494,13 +531,15 @@ function applyCloudData(data){
   state.extras = state.extras.map(ex=> typeof ex === "string" ? {id:newId(), name:ex, section:grocerySection(ex)} : ex);
   state.groceryChecked = (data && data.groceryChecked) || {};
   state.servingsOverride = (data && data.servingsOverride) || {};
+  state.itemLinks = (data && data.itemLinks) || {};
 }
 function syncToCloud(){
   const user = auth.currentUser;
   if(!user) return;
   docRef(user.uid).set({
     plan: state.plan, pantry: state.pantry, extras: state.extras,
-    groceryChecked: state.groceryChecked, servingsOverride: state.servingsOverride
+    groceryChecked: state.groceryChecked, servingsOverride: state.servingsOverride,
+    itemLinks: state.itemLinks
   }, {merge:true}).catch(e=>console.error("sync failed", e));
 }
 let unsubscribeDoc = null;
@@ -745,6 +784,7 @@ function renderPantry(){
                 <button class="low ${st==="low"?"on":""}" data-status="low">Low</button>
                 <button class="need ${st==="need"?"on":""}" data-status="need">Need</button>
               </div>
+              ${linkFieldHTML("extra:"+ex.id)}
               <span class="rmx" data-rmextra="${ex.id}">&times;</span>
             </div>`;
           }).join("")}
@@ -761,6 +801,7 @@ function pantryRow(n){
       <button class="low ${st==="low"?"on":""}" data-status="low">Low</button>
       <button class="need ${st==="need"?"on":""}" data-status="need">Need</button>
     </div>
+    ${linkFieldHTML("pantry:"+n)}
   </div>`;
 }
 
@@ -879,6 +920,7 @@ function renderGrocery(){
             return `<div class="grow ${checked?"done":""}">
               <input type="checkbox" data-gcheck="${it.lookup}" ${checked?"checked":""}/>
               <span>${it.display}</span>
+              ${ex? linkFieldHTML("extra:"+ex.id) : ""}
               ${ex? `<span class="rmx" data-rmextra="${ex.id}">&times;</span>` : ""}
             </div>`;
           }).join("")}
@@ -956,6 +998,20 @@ function wireTabEvents(){
     el.onclick = ()=>{
       state.extras = state.extras.filter(ex=>ex.id!==el.dataset.rmextra);
       syncToCloud();
+      render();
+    };
+  });
+  c.querySelectorAll("[data-link]").forEach(inp=>{
+    inp.onchange = ()=>{
+      setLink(inp.dataset.link, inp.value.trim());
+      state.editingLink[inp.dataset.link] = false;
+      syncToCloud();
+      render();
+    };
+  });
+  c.querySelectorAll("[data-editlink]").forEach(el=>{
+    el.onclick = ()=>{
+      state.editingLink[el.dataset.editlink] = true;
       render();
     };
   });
