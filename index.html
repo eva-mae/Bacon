@@ -1,0 +1,972 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Bacon">
+<meta name="theme-color" content="#1C1815">
+<title>Bacon</title>
+<style>
+:root{
+  --parchment:#1C1815; --card:#26221C; --ink:#F5EFE3; --ink-soft:#A79C87; --line:#3D362C;
+  --sage:#7ED99A; --sage-bg:rgba(126,217,154,0.22);
+  --rust:#FF8A5C; --rust-bg:rgba(255,138,92,0.22);
+  --gold:#FFC94D; --gold-bg:rgba(255,201,77,0.22);
+  --blue:#6FB8FF; --blue-bg:rgba(111,184,255,0.22);
+  --brown:#D9A066; --brown-bg:rgba(217,160,102,0.22);
+  --olive:#B8D957; --olive-bg:rgba(184,217,87,0.22);
+  --terracotta:#FF7A66; --terracotta-bg:rgba(255,122,102,0.22);
+  --plum:#C792EA; --plum-bg:rgba(199,146,234,0.22);
+  --grey:#B8AF9C; --grey-bg:rgba(184,175,156,0.18);
+}
+*{box-sizing:border-box;}
+body{margin:0;background:var(--parchment);color:var(--ink);font-family:"Avenir Next","Segoe UI",Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;}
+.wrap{max-width:940px;margin:0 auto;padding:20px 16px 100px;}
+header.top{display:flex;align-items:baseline;justify-content:space-between;border-bottom:2px solid var(--ink);padding-bottom:14px;margin-bottom:18px;}
+header.top h1{font-family:"Iowan Old Style","Palatino Linotype",Georgia,serif;font-style:italic;font-weight:600;font-size:34px;margin:0;letter-spacing:.5px;}
+header.top .tag{font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--ink-soft);}
+
+/* bottom nav */
+nav.bottombar{
+  position:fixed;left:0;right:0;bottom:0;z-index:40;
+  background:var(--card);border-top:1.5px solid var(--ink);
+  display:flex;justify-content:space-around;align-items:stretch;
+  padding:6px 6px calc(6px + env(safe-area-inset-bottom));
+}
+nav.bottombar button{
+  flex:1;font-family:inherit;background:transparent;border:none;cursor:pointer;
+  display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 4px;
+  color:var(--ink-soft);font-size:10.5px;letter-spacing:.5px;text-transform:uppercase;border-radius:6px;
+}
+nav.bottombar button .ico{font-size:19px;line-height:1;}
+nav.bottombar button.active{color:var(--ink);font-weight:700;background:var(--parchment);}
+
+.section-title{font-family:"Iowan Old Style","Palatino Linotype",Georgia,serif;font-style:italic;font-size:22px;margin:0 0 4px;}
+.section-sub{font-size:12.5px;color:var(--ink-soft);margin:0 0 18px;letter-spacing:.3px;}
+.filters{display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap;}
+.filters button{font-family:inherit;font-size:12px;letter-spacing:.5px;text-transform:uppercase;border:1px solid var(--line);background:var(--card);color:var(--ink-soft);padding:6px 12px;border-radius:20px;cursor:pointer;}
+.filters button.active{border-color:var(--ink);color:var(--ink);background:var(--line);font-weight:600;}
+
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:14px;}
+.rcard{background:var(--card);border:1px solid var(--line);border-radius:3px;position:relative;padding:16px 16px 14px 18px;overflow:hidden;}
+.rcard::before{content:"";position:absolute;left:0;top:0;bottom:0;width:6px;background:var(--tab-color,#888);}
+.rcard h3{font-family:"Iowan Old Style","Palatino Linotype",Georgia,serif;font-style:italic;font-size:19px;margin:0 0 6px;padding-right:4px;}
+.meta-row{display:flex;align-items:center;gap:10px;font-size:11.5px;color:var(--ink-soft);margin-bottom:10px;flex-wrap:wrap;}
+.pill{font-size:10px;letter-spacing:1px;text-transform:uppercase;padding:2px 8px;border-radius:20px;font-weight:700;}
+.timegauge{display:inline-flex;gap:3px;align-items:center;}
+.timegauge .dot{width:6px;height:6px;border-radius:50%;background:var(--line);}
+.timegauge .dot.on{background:var(--ink);}
+.servctl{display:flex;align-items:center;gap:8px;margin-bottom:10px;background:var(--parchment);border:1px solid var(--line);border-radius:20px;padding:4px 6px;width:fit-content;}
+.servctl button{width:22px;height:22px;border-radius:50%;border:1px solid var(--ink);background:var(--card);color:var(--ink);font-size:14px;line-height:1;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;padding:0;}
+.servctl button:hover{background:var(--ink);color:var(--parchment);}
+.servctl .servlabel{font-size:12px;font-weight:600;min-width:76px;text-align:center;}
+.servctl .resetlink{font-size:10.5px;color:var(--ink-soft);text-decoration:underline;cursor:pointer;margin-left:2px;}
+.rcard .ingr{font-size:12.5px;color:var(--ink-soft);line-height:1.55;margin-bottom:4px;}
+.rcard .ingr b{color:var(--ink);}
+
+/* planner */
+.week{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:12px;}
+.day{background:var(--card);border:1px solid var(--line);border-radius:3px;padding:12px;min-height:150px;display:flex;flex-direction:column;}
+.day h4{font-family:"Iowan Old Style","Palatino Linotype",Georgia,serif;font-style:italic;margin:0 0 2px;font-size:17px;}
+.day .daytime{font-size:10.5px;color:var(--ink-soft);margin-bottom:10px;letter-spacing:.5px;}
+.chip{display:flex;align-items:center;justify-content:space-between;gap:6px;font-size:12px;background:var(--parchment);border-left:4px solid var(--chipcolor,var(--line));border:1px solid var(--line);border-left-width:4px;border-left-color:var(--chipcolor,var(--line));border-radius:3px;padding:5px 8px;margin-bottom:6px;}
+.chip .chipname{display:flex;flex-direction:column;}
+.chip .chipserv{font-size:10px;color:var(--ink-soft);}
+.chip .x{cursor:pointer;color:var(--ink-soft);font-weight:700;padding:0 2px;}
+.chip .x:hover{color:var(--rust);}
+.addslot{margin-top:auto;font-family:inherit;font-size:11.5px;text-transform:uppercase;letter-spacing:.5px;border:1.5px dashed var(--line);background:transparent;color:var(--ink-soft);padding:7px;cursor:pointer;border-radius:2px;}
+.addslot:hover{border-color:var(--ink);color:var(--ink);}
+
+.overlay{position:fixed;inset:0;background:rgba(46,42,34,.45);display:flex;align-items:center;justify-content:center;padding:20px;z-index:50;}
+.modal{background:var(--card);border-radius:4px;max-width:600px;width:100%;max-height:82vh;overflow:auto;padding:20px;}
+.modal h3{font-family:"Iowan Old Style",Georgia,serif;font-style:italic;margin-top:0;}
+.picklist{display:flex;flex-direction:column;gap:8px;}
+.pickitem{border:1px solid var(--line);border-radius:3px;padding:9px 11px;font-size:13px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;}
+.pickitem .pname{font-weight:600;}
+.pickitem .pmeta{color:var(--ink-soft);font-size:11px;}
+.pickitem .pright{display:flex;align-items:center;gap:8px;}
+.addbtn{font-family:inherit;font-size:11.5px;letter-spacing:.5px;text-transform:uppercase;border:1.5px solid var(--ink);background:transparent;color:var(--ink);padding:6px 12px;cursor:pointer;border-radius:2px;}
+.addbtn:hover{background:var(--ink);color:var(--parchment);}
+.closebtn{margin-top:14px;font-family:inherit;border:1.5px solid var(--ink);background:transparent;padding:7px 14px;cursor:pointer;border-radius:2px;text-transform:uppercase;font-size:11.5px;letter-spacing:.5px;}
+
+/* pantry & grocery colored sections */
+.secblock{margin-bottom:18px;border-radius:4px;overflow:hidden;border:1px solid var(--line);}
+.sechead{padding:9px 14px;font-family:"Iowan Old Style","Palatino Linotype",Georgia,serif;font-style:italic;font-size:15.5px;font-weight:600;}
+.pantrylist{display:flex;flex-direction:column;gap:1px;background:var(--line);}
+.prow{background:var(--card);display:flex;align-items:center;justify-content:space-between;padding:9px 14px;font-size:13.5px;gap:10px;flex-wrap:wrap;}
+.statusbtns{display:flex;gap:5px;}
+.statusbtns button{font-family:inherit;font-size:10.5px;text-transform:uppercase;letter-spacing:.5px;border:1px solid var(--line);background:transparent;padding:4px 9px;border-radius:20px;cursor:pointer;color:var(--ink-soft);}
+.statusbtns button.have.on{background:var(--sage-bg);border-color:var(--sage);color:var(--sage);font-weight:700;}
+.statusbtns button.low.on{background:var(--gold-bg);border-color:var(--gold);color:var(--gold);font-weight:700;}
+.statusbtns button.need.on{background:var(--rust-bg);border-color:var(--rust);color:var(--rust);font-weight:700;}
+.rmx{cursor:pointer;color:var(--ink-soft);font-weight:700;padding:0 4px;}
+.rmx:hover{color:var(--rust);}
+.addrow{display:flex;gap:8px;margin-top:12px;padding:0 14px 14px;flex-wrap:wrap;}
+.addrow input{flex:1;min-width:160px;padding:9px 10px;border:1px solid var(--line);border-radius:3px;font-family:inherit;font-size:13px;background:var(--card);color:var(--ink);}
+.addrow select{padding:9px 10px;border:1px solid var(--line);border-radius:3px;font-family:inherit;font-size:12.5px;background:var(--card);color:var(--ink);}
+.addrow button{font-family:inherit;border:1.5px solid var(--ink);background:var(--ink);color:var(--parchment);padding:9px 16px;border-radius:2px;cursor:pointer;font-size:12px;text-transform:uppercase;letter-spacing:.5px;}
+
+.glist{display:flex;flex-direction:column;gap:1px;background:var(--line);}
+.grow{background:var(--card);padding:9px 14px;font-size:13.5px;display:flex;align-items:center;gap:10px;}
+.grow.done{opacity:.4;text-decoration:line-through;}
+.grow .src{color:var(--ink-soft);font-size:11px;margin-left:auto;text-align:right;}
+.grow input[type=checkbox]{width:16px;height:16px;accent-color:var(--sage);cursor:pointer;}
+.havepanel{margin-top:6px;}
+.tag-have{font-size:10px;text-transform:uppercase;letter-spacing:.5px;background:var(--sage-bg);color:var(--sage);padding:2px 7px;border-radius:20px;font-weight:700;}
+.empty{color:var(--ink-soft);font-size:13.5px;padding:30px;text-align:center;border:1px dashed var(--line);border-radius:4px;}
+
+.authwrap{max-width:380px;margin:80px auto;padding:0 16px;}
+.authbox{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:24px;}
+.authbox h2{font-family:"Iowan Old Style","Palatino Linotype",Georgia,serif;font-style:italic;margin:0 0 4px;font-size:24px;}
+.authbox p{color:var(--ink-soft);font-size:12.5px;margin:0 0 18px;}
+.authbox input{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:4px;background:var(--parchment);color:var(--ink);font-family:inherit;font-size:14px;margin-bottom:10px;box-sizing:border-box;}
+.authbtns{display:flex;gap:8px;margin-top:6px;}
+.authbtns button{flex:1;font-family:inherit;border:1.5px solid var(--ink);padding:10px;border-radius:20px;cursor:pointer;font-size:12px;text-transform:uppercase;letter-spacing:.5px;}
+.authbtns .primarybtn{background:var(--ink);color:var(--parchment);}
+.authbtns .secondarybtn{background:transparent;color:var(--ink);}
+.autherr{color:var(--rust);font-size:12.5px;margin-top:10px;min-height:16px;}
+.signoutbtn{font-family:inherit;font-size:10px;text-transform:uppercase;letter-spacing:.5px;border:1px solid var(--line);background:transparent;color:var(--ink-soft);padding:4px 10px;border-radius:20px;cursor:pointer;margin-top:6px;}
+</style>
+</head>
+<body>
+<div class="wrap authwrap" id="authgate" style="display:none;">
+  <div class="authbox">
+    <h2>Sign in to Bacon</h2>
+    <p>Sign in so your changes sync across your devices. Use the same email &amp; password on your Mac and iPhone.</p>
+    <input type="email" id="authemail" placeholder="Email" autocomplete="email">
+    <input type="password" id="authpassword" placeholder="Password" autocomplete="current-password">
+    <div class="authbtns">
+      <button class="primarybtn" id="authsignin">Sign In</button>
+      <button class="secondarybtn" id="authsignup">Create Account</button>
+    </div>
+    <div class="autherr" id="autherr"></div>
+  </div>
+</div>
+<div class="wrap" id="app" style="display:none;"></div>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyCiHjIlaPxLSXQjlNZOA1DZWL06FYNBxA4",
+  authDomain: "evangeline-apps.firebaseapp.com",
+  projectId: "evangeline-apps",
+  storageBucket: "evangeline-apps.firebasestorage.app",
+  messagingSenderId: "528428196493",
+  appId: "1:528428196493:web:8617b410a856e67005b8c4"
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+/* ---------------- DATA ---------------- */
+const CATS = {
+  breakfast:{label:"Breakfast", color:"var(--gold)", bg:"var(--gold-bg)"},
+  appetizer:{label:"Appetizer", color:"var(--sage)", bg:"var(--sage-bg)"},
+  main:{label:"Main", color:"var(--rust)", bg:"var(--rust-bg)"},
+  side:{label:"Side", color:"var(--blue)", bg:"var(--blue-bg)"}
+};
+const SECTIONS = {
+  "Produce":{color:"var(--sage)", bg:"var(--sage-bg)"},
+  "Meat & Seafood":{color:"var(--rust)", bg:"var(--rust-bg)"},
+  "Dairy & Eggs":{color:"var(--gold)", bg:"var(--gold-bg)"},
+  "Bakery & Bread":{color:"var(--brown)", bg:"var(--brown-bg)"},
+  "Frozen":{color:"var(--blue)", bg:"var(--blue-bg)"},
+  "Pantry & Dry Goods":{color:"var(--olive)", bg:"var(--olive-bg)"},
+  "Condiments & Seasonings":{color:"var(--terracotta)", bg:"var(--terracotta-bg)"},
+  "Snacks & Extras":{color:"var(--plum)", bg:"var(--plum-bg)"},
+  "Other":{color:"var(--grey)", bg:"var(--grey-bg)"}
+};
+const SECTION_ORDER = ["Produce","Meat & Seafood","Dairy & Eggs","Bakery & Bread","Frozen","Pantry & Dry Goods","Condiments & Seasonings","Snacks & Extras","Other"];
+
+function grocerySection(name){
+  const n = name.toLowerCase();
+  const rules = [
+    ["Condiments & Seasonings",["oil","vinegar","hot sauce","ketchup","mayo","soy sauce","worcestershire","ranch","buffalo sauce","honey","syrup","dressing","adobo","sriracha","salsa","salt","pepper","paprika","cumin","oregano","cinnamon","chili powder","garlic powder","onion powder","cayenne","thyme","ginger","dill","mustard powder","sesame seeds","sesame oil","bay leaves"]],
+    ["Pantry & Dry Goods",["can ","canned","jar","evaporated milk","artichoke hearts","tomato paste","chipotle","san marzano","pickled jalape","bouillon","broth","stock","flour","rice","pasta","spaghetti","macaroni","breadcrumb","bread crumb","panko","cornflakes","sugar","yeast","baking powder","baking soda","cornstarch","vanilla extract","chocolate chips","powdered sugar"]],
+    ["Dairy & Eggs",["egg","milk","cream","butter","cheese","cheddar","mozzarella","parmesan","parmigiano","provolone","asiago","monterey jack","pepper jack","american cheese","cotija","sour cream","buttermilk","yogurt"]],
+    ["Meat & Seafood",["chicken","beef","steak","bacon","pancetta","ribeye","sausage"]],
+    ["Bakery & Bread",["bread","tortilla","bun","roll","hoagie","toast","baguette"]],
+    ["Frozen",["frozen"]],
+    ["Snacks & Extras",["chip","cracker","snack","cookie","candy","pretzel","popcorn","granola"]],
+    ["Produce",["onion","garlic","tomato","potato","carrot","celery","lemon","lime","orange","jalape","cilantro","parsley","basil","scallion","banana","blueberr","corn","lettuce","chive"]]
+  ];
+  for(const [sec,kws] of rules) if(kws.some(k=>n.includes(k))) return sec;
+  return "Other";
+}
+
+// ingredient shape: {a: amount(number|null), u: unit string, n: name}
+const RECIPES = [
+{id:"arancini",name:"Arancini",cat:"appetizer",servings:6,prep:30,cook:60,ingr:[
+ {a:2,u:"tbsp",n:"olive oil"},{a:1,u:"",n:"small yellow onion, chopped"},{a:2,u:"",n:"garlic cloves, crushed"},
+ {a:1.5,u:"cups",n:"Arborio rice"},{a:1,u:"tsp",n:"fine salt"},{a:0.125,u:"tsp",n:"black pepper"},
+ {a:3,u:"tbsp",n:"parsley, chopped"},{a:3,u:"cups",n:"chicken stock"},{a:2,u:"tsp",n:"tomato paste, double concentrated"},
+ {a:2,u:"tbsp",n:"unsalted butter"},{a:0.5,u:"cup",n:"grated parmesan"},{a:4,u:"oz",n:"mozzarella cheese"},
+ {a:0.5,u:"cup",n:"all-purpose flour"},{a:2,u:"",n:"eggs"},{a:2,u:"cups",n:"panko breadcrumbs"},
+ {a:2,u:"cups",n:"vegetable oil, for frying"}]},
+{id:"artichokedip",name:"Artichoke Dip",cat:"appetizer",servings:8,prep:10,cook:20,ingr:[
+ {a:12,u:"oz",n:"artichoke hearts, chopped"},{a:0.5,u:"cup",n:"sour cream"},{a:8,u:"oz",n:"cream cheese, softened"},
+ {a:2,u:"oz",n:"diced green chilies"},{a:0.125,u:"cup",n:"grated parmesan"},{a:4,u:"",n:"garlic cloves"},
+ {a:2,u:"oz",n:"Asiago or parmesan, grated"},{a:4,u:"oz",n:"mozzarella"},{a:null,u:"",n:"cracked pepper, to taste"}]},
+{id:"buffchickendip",name:"Buffalo Chicken Dip",cat:"appetizer",servings:12,prep:5,cook:20,ingr:[
+ {a:2,u:"cups",n:"cooked shredded chicken"},{a:8,u:"oz",n:"cream cheese, softened + cubed"},
+ {a:1,u:"oz",n:"dry ranch dressing mix"},{a:2,u:"tsp",n:"garlic powder"},{a:1.5,u:"cups",n:"shredded cheddar"},
+ {a:0.5,u:"cup",n:"buffalo hot sauce"}]},
+{id:"quesodip",name:"Crock-pot White Queso Dip",cat:"appetizer",servings:10,prep:5,cook:150,ingr:[
+ {a:8,u:"oz",n:"white American cheese"},{a:8,u:"oz",n:"pepper jack cheese"},{a:12,u:"oz",n:"evaporated milk, canned"},
+ {a:4,u:"oz",n:"green chilies, canned"},{a:0.25,u:"cup",n:"pickled jalapeños"},{a:0.5,u:"tsp",n:"kosher salt"},
+ {a:0.5,u:"tsp",n:"garlic powder"},{a:0.5,u:"tsp",n:"cumin"},{a:0.5,u:"tsp",n:"ancho chili powder"},
+ {a:null,u:"",n:"lime juice, optional, to taste"},{a:null,u:"",n:"fresh cilantro, for garnish"},{a:null,u:"",n:"green onions, sliced, for garnish"}]},
+{id:"streetcorndip",name:"Mexican Street Corn Dip",cat:"appetizer",servings:8,prep:15,cook:15,ingr:[
+ {a:2,u:"tbsp",n:"chili powder"},{a:2,u:"tsp",n:"smoked paprika"},{a:0.5,u:"tsp",n:"cayenne pepper"},
+ {a:2,u:"tbsp",n:"extra virgin olive oil"},{a:1,u:"",n:"yellow onion, chopped"},{a:3,u:"cups",n:"corn, 3-4 ears"},
+ {a:3,u:"",n:"garlic cloves, chopped"},{a:6,u:"oz",n:"cream cheese, room temp"},{a:0.5,u:"cup",n:"sour cream"},
+ {a:4,u:"tbsp",n:"salted butter"},{a:0.5,u:"cup",n:"olive oil mayo, or greek yogurt"},{a:1,u:"",n:"jalapeño, chopped"},
+ {a:2,u:"tbsp",n:"adobo sauce"},{a:null,u:"",n:"kosher salt + black pepper, to taste"},{a:null,u:"",n:"lime juice, to taste"},
+ {a:null,u:"",n:"cotija cheese, for topping"}]},
+{id:"bananabread",name:"Banana Bread",cat:"breakfast",servings:8,prep:15,cook:60,ingr:[
+ {a:1,u:"stick",n:"unsalted butter, for greasing pan"},{a:0.75,u:"cup",n:"dark brown sugar"},{a:2,u:"",n:"eggs, room temp"},
+ {a:2.333,u:"cups",n:"very ripe bananas, mashed"},{a:2,u:"cups",n:"all-purpose flour"},{a:0.5,u:"tsp",n:"vanilla extract"},
+ {a:1,u:"tsp",n:"baking soda"},{a:0.25,u:"tsp",n:"salt"},{a:1,u:"tbsp",n:"coarse sugar, topping"},
+ {a:0.125,u:"tsp",n:"cinnamon"},{a:null,u:"",n:"dark chocolate chips, optional"}]},
+{id:"focaccia",name:"Focaccia Bread",cat:"side",servings:6,prep:5,cook:25,ingr:[
+ {a:2,u:"cups",n:"bread flour"},{a:1.125,u:"tsp",n:"instant yeast"},{a:0.75,u:"tsp",n:"kosher salt"},
+ {a:1,u:"cup",n:"very warm water"},{a:1.5,u:"tbsp",n:"extra virgin olive oil"},{a:0.25,u:"tsp",n:"sea salt flakes"},
+ {a:null,u:"",n:"optional: caramelized onions, garlic, burrata, tomatoes"}]},
+{id:"yeastbread",name:"Yeast Bread",cat:"side",servings:10,prep:5,cook:40,ingr:[
+ {a:3,u:"cups",n:"all-purpose flour"},{a:2,u:"tsp",n:"rapid rise yeast"},{a:2,u:"tsp",n:"kosher salt"},
+ {a:1.5,u:"cups",n:"very warm water"},{a:1.5,u:"tbsp",n:"flour, for dusting"}]},
+{id:"blueberrycake",name:"Blueberry Coffee Cake",cat:"breakfast",servings:16,prep:30,cook:70,ingr:[
+ {a:6,u:"tbsp",n:"packed light brown sugar"},{a:2.5,u:"cups",n:"all-purpose flour, total"},{a:1,u:"tsp",n:"ground cinnamon"},
+ {a:0.25,u:"tsp",n:"salt"},{a:4,u:"tbsp",n:"cold unsalted butter, cubed"},{a:2,u:"tsp",n:"baking powder"},
+ {a:0.5,u:"tsp",n:"salt, for batter"},{a:0.5,u:"cup",n:"unsalted butter, softened"},{a:0.75,u:"cup",n:"granulated sugar"},
+ {a:2,u:"",n:"large eggs"},{a:1.5,u:"tsp",n:"vanilla extract"},{a:1,u:"tsp",n:"lemon zest"},{a:0.5,u:"cup",n:"milk"},
+ {a:2,u:"cups",n:"fresh blueberries"}]},
+{id:"stuffedfrenchtoast",name:"Stuffed French Toast",cat:"breakfast",servings:6,prep:15,cook:10,ingr:[
+ {a:8,u:"oz",n:"cream cheese, softened"},{a:0.333,u:"cup",n:"powdered sugar"},{a:2,u:"tsp",n:"vanilla extract, total"},
+ {a:12,u:"slices",n:"Texas toast"},{a:4,u:"",n:"eggs"},{a:1,u:"cup",n:"whole milk"},{a:1,u:"tsp",n:"cinnamon"},
+ {a:3,u:"tbsp",n:"butter"},{a:null,u:"",n:"toppings: maple syrup, berries, powdered sugar, whipped cream"}]},
+{id:"beignets",name:"New Orleans Beignets",cat:"breakfast",servings:20,prep:30,cook:15,ingr:[
+ {a:0.75,u:"cup",n:"warm water, 110°F"},{a:0.5,u:"cup",n:"granulated sugar"},{a:2.25,u:"tsp",n:"active dry yeast"},
+ {a:1,u:"",n:"large egg, room temp"},{a:0.5,u:"cup",n:"milk"},{a:2,u:"tsp",n:"vanilla extract"},
+ {a:3.75,u:"cups",n:"all-purpose flour"},{a:1,u:"tsp",n:"salt"},{a:3,u:"tbsp",n:"unsalted butter"},
+ {a:null,u:"",n:"vegetable oil, for frying"},{a:0.5,u:"cup",n:"powdered sugar, for dusting"}]},
+{id:"cinnamonrolls",name:"Overnight Cinnamon Rolls",cat:"breakfast",servings:12,prep:30,cook:23,ingr:[
+ {a:1,u:"cup",n:"warm milk"},{a:0.5,u:"tbsp",n:"active dry yeast"},{a:4,u:"tbsp",n:"granulated sugar, total"},
+ {a:3,u:"cups",n:"all-purpose flour"},{a:1,u:"",n:"large egg"},{a:2,u:"tbsp",n:"unsalted butter, melted"},
+ {a:0.5,u:"tsp",n:"salt"},{a:7,u:"tbsp",n:"unsalted butter, softened, divided"},{a:0.25,u:"cup",n:"granulated sugar, for filling"},
+ {a:1,u:"tbsp",n:"ground cinnamon"},{a:4,u:"tbsp",n:"unsalted butter, softened, for icing"},{a:4,u:"oz",n:"cream cheese, softened"},
+ {a:0.5,u:"tbsp",n:"vanilla extract"},{a:1,u:"cup",n:"powdered sugar"}]},
+{id:"ovenbacon",name:"Oven Bacon",cat:"side",servings:8,prep:5,cook:15,ingr:[{a:1,u:"lb",n:"bacon"}]},
+{id:"hothoneychicken",name:"Baked Hot-Honey Chicken",cat:"main",servings:6,prep:15,cook:25,ingr:[
+ {a:6,u:"cups",n:"cornflakes"},{a:0.25,u:"cup",n:"grated parmesan"},{a:1,u:"tsp",n:"smoked paprika"},
+ {a:0.5,u:"tsp",n:"onion powder"},{a:0.5,u:"tsp",n:"garlic powder"},{a:2,u:"",n:"large eggs, beaten"},
+ {a:2,u:"tbsp",n:"hot sauce, for dredge"},{a:2,u:"lb",n:"chicken breast tenderloins"},{a:0.5,u:"cup",n:"honey"},
+ {a:3,u:"tbsp",n:"hot sauce, for sauce"},{a:3,u:"tsp",n:"cayenne pepper"},{a:0.75,u:"tsp",n:"chipotle chili powder"},
+ {a:null,u:"",n:"extra virgin olive oil, for drizzling"},{a:null,u:"",n:"sea salt, to taste"}]},
+{id:"sweetsourchicken",name:"Baked Sweet & Sour Chicken",cat:"main",servings:4,prep:20,cook:60,ingr:[
+ {a:1,u:"lb",n:"boneless, skinless chicken breasts"},{a:0.5,u:"cup",n:"cornstarch"},{a:2,u:"",n:"large eggs, beaten"},
+ {a:0.25,u:"cup",n:"vegetable oil"},{a:0.75,u:"cup",n:"sugar"},{a:0.5,u:"cup",n:"apple cider vinegar"},
+ {a:0.25,u:"cup",n:"ketchup"},{a:1,u:"tbsp",n:"soy sauce"},{a:0.5,u:"tsp",n:"garlic powder"}]},
+{id:"orangechicken",name:"Chinese Orange Chicken",cat:"main",servings:4,prep:40,cook:10,ingr:[
+ {a:1.5,u:"lb",n:"boneless, skinless chicken breasts"},{a:1,u:"cup",n:"cornstarch, plus 2 tbsp for slurry"},
+ {a:2,u:"",n:"large eggs, beaten"},{a:1,u:"cup",n:"vegetable oil"},{a:0.5,u:"tsp",n:"sesame seeds"},
+ {a:1,u:"",n:"green onion, sliced"},{a:1,u:"cup",n:"chicken broth"},{a:0.5,u:"cup",n:"fresh orange juice"},
+ {a:0.5,u:"cup",n:"sugar"},{a:0.333,u:"cup",n:"distilled white vinegar"},{a:0.25,u:"cup",n:"soy sauce"},
+ {a:2,u:"",n:"garlic cloves, minced"},{a:1,u:"tbsp",n:"orange zest"},{a:1,u:"tsp",n:"sriracha"},
+ {a:0.25,u:"tsp",n:"ground ginger"},{a:0.25,u:"tsp",n:"white pepper"}]},
+{id:"baconranchchicken",name:"Baked Bacon Ranch Chicken",cat:"main",servings:4,prep:20,cook:30,ingr:[
+ {a:4,u:"",n:"boneless skinless chicken breasts"},{a:1.5,u:"cups",n:"ranch dressing"},{a:0.5,u:"cup",n:"sour cream"},
+ {a:1.25,u:"cups",n:"grated parmesan"},{a:null,u:"",n:"kosher salt, to taste"},{a:null,u:"",n:"black pepper, to taste"},
+ {a:0.25,u:"cup",n:"cooked bacon crumbles"}]},
+{id:"birriatacos",name:"Beef Birria Tacos",cat:"main",servings:10,prep:15,cook:210,ingr:[
+ {a:null,u:"",n:"garlic + onion powder, to taste"},{a:2,u:"lb",n:"beef chunk, cheeks or chuck"},{a:1,u:"tsp",n:"black pepper"},
+ {a:2,u:"tbsp",n:"vegetable oil"},{a:4,u:"",n:"chipotle chiles in adobo sauce"},{a:1.5,u:"cups",n:"better than bouillon broth"},
+ {a:0.5,u:"cup",n:"apple cider vinegar"},{a:2,u:"",n:"limes, juiced"},{a:null,u:"",n:"cilantro, to taste"},
+ {a:10,u:"",n:"garlic cloves"},{a:4,u:"tsp",n:"ground cumin"},{a:2,u:"tsp",n:"oregano"},{a:1,u:"tbsp",n:"soy sauce"},
+ {a:2,u:"tbsp",n:"worcestershire sauce"},{a:0.5,u:"can",n:"San Marzano tomatoes"},{a:2,u:"",n:"yellow onions, diced"},
+ {a:1,u:"",n:"cinnamon stick"},{a:null,u:"",n:"corn tortillas + cheese, for serving"}]},
+{id:"buffmac",name:"Buffalo Chicken Mac & Cheese",cat:"main",servings:8,prep:20,cook:35,ingr:[
+ {a:16,u:"oz",n:"elbow macaroni"},{a:0.333,u:"cup",n:"butter"},{a:0.333,u:"cup",n:"flour"},{a:1,u:"tsp",n:"onion powder"},
+ {a:2.5,u:"cups",n:"milk"},{a:0.5,u:"cup",n:"light cream"},{a:0.5,u:"tsp",n:"dry mustard powder"},{a:0.5,u:"tsp",n:"salt"},
+ {a:3,u:"cups",n:"sharp cheddar cheese"},{a:1,u:"cup",n:"pepper jack, shredded"},{a:0.667,u:"cup",n:"buffalo sauce"},
+ {a:3,u:"cups",n:"rotisserie chicken, cooked and shredded"},{a:0.667,u:"cup",n:"seasoned bread crumbs"},{a:2,u:"tbsp",n:"melted butter, for topping"}]},
+{id:"buffenchiladas",name:"Buffalo Chicken Enchiladas",cat:"main",servings:6,prep:15,cook:15,ingr:[
+ {a:3,u:"tbsp",n:"unsalted butter, melted"},{a:4,u:"cups",n:"shredded rotisserie chicken"},{a:8,u:"oz",n:"cream cheese, room temp"},
+ {a:2,u:"cups",n:"shredded cheddar"},{a:1,u:"cup",n:"buffalo style hot sauce"},{a:1,u:"bunch",n:"scallions, thinly sliced"},
+ {a:0.25,u:"tsp",n:"ground cumin"},{a:null,u:"",n:"corn tortillas"},{a:2,u:"tbsp",n:"crumbled blue cheese"},{a:2,u:"tbsp",n:"blue cheese dressing"}]},
+{id:"carbonara",name:"Carbonara",cat:"main",servings:4,prep:15,cook:20,ingr:[
+ {a:6,u:"oz",n:"pancetta or block bacon"},{a:2,u:"",n:"large eggs"},{a:2,u:"",n:"egg yolks"},
+ {a:3.5,u:"oz",n:"parmigiano reggiano, finely shredded"},{a:0.25,u:"tsp",n:"black pepper"},{a:14,u:"oz",n:"spaghetti"},
+ {a:1,u:"tbsp",n:"kosher salt, for pasta water"},{a:1,u:"",n:"garlic clove, minced"},{a:null,u:"",n:"parsley, chopped, optional"}]},
+{id:"chinesechickenballs",name:"Chinese Chicken Balls",cat:"main",servings:4,prep:20,cook:15,ingr:[
+ {a:1.75,u:"lb",n:"boneless skinless chicken breast, about 5"},{a:0.625,u:"cup",n:"flour"},{a:0.625,u:"cup",n:"cornstarch"},
+ {a:1.125,u:"tsp",n:"baking powder"},{a:1.125,u:"tsp",n:"baking soda"},{a:1.125,u:"tsp",n:"garlic powder"},
+ {a:1.125,u:"tsp",n:"salt"},{a:1.125,u:"tsp",n:"sugar"},{a:0.625,u:"cup",n:"water"},{a:2.25,u:"tsp",n:"sesame oil"},
+ {a:null,u:"",n:"cayenne pepper, pinch, optional"},{a:null,u:"",n:"oil, for frying"}]},
+{id:"honeybuffsliders",name:"Honey Buffalo Chicken Sliders",cat:"main",servings:7,prep:15,cook:240,ingr:[
+ {a:2,u:"lb",n:"boneless skinless chicken breast"},{a:4,u:"tbsp",n:"butter"},{a:0.75,u:"cup",n:"hot sauce"},
+ {a:0.375,u:"cup",n:"honey"},{a:2,u:"tbsp",n:"brown sugar"},{a:2,u:"tbsp",n:"soy sauce"},{a:3,u:"tbsp",n:"ketchup"},
+ {a:0.5,u:"tsp",n:"garlic powder"},{a:0.5,u:"tsp",n:"paprika"},{a:0.5,u:"tsp",n:"dried thyme"},{a:1,u:"tsp",n:"salt"},
+ {a:null,u:"",n:"black pepper, to taste"},{a:1.5,u:"tbsp",n:"cornstarch"},{a:null,u:"",n:"rolls, as desired"}]},
+{id:"potatosoup",name:"Potato Soup",cat:"main",servings:4,prep:30,cook:25,ingr:[
+ {a:3,u:"strips",n:"uncooked bacon"},{a:1.5,u:"tbsp",n:"butter"},{a:0.5,u:"",n:"medium yellow onion, chopped"},
+ {a:1.5,u:"",n:"garlic cloves, minced"},{a:0.125,u:"cup",n:"flour"},{a:1.25,u:"lb",n:"gold potatoes, peeled and diced"},
+ {a:2,u:"cups",n:"chicken broth"},{a:1,u:"cup",n:"milk"},{a:0.333,u:"cup",n:"heavy cream"},{a:0.75,u:"tsp",n:"salt"},
+ {a:0.5,u:"tsp",n:"ground pepper"},{a:0.25,u:"tsp",n:"ancho chili powder"},{a:0.333,u:"cup",n:"sour cream"},
+ {a:null,u:"",n:"shredded cheddar cheese, for topping"},{a:null,u:"",n:"chives, for topping"}]},
+{id:"garlicrice",name:"Garlic Rice",cat:"side",servings:4,prep:5,cook:20,ingr:[
+ {a:0.333,u:"cup",n:"unsalted butter, divided"},{a:null,u:"",n:"diced onions, a handful"},{a:0.333,u:"cup",n:"garlic, minced"},
+ {a:1.333,u:"cups",n:"white rice"},{a:2,u:"cups",n:"chicken stock or broth"},{a:0.5,u:"tsp",n:"kosher salt"}]},
+{id:"flautas",name:"Chicken Flautas",cat:"main",servings:16,prep:20,cook:20,ingr:[
+ {a:null,u:"",n:"vegetable or canola oil, for frying"},{a:1,u:"tbsp",n:"butter"},{a:0.5,u:"",n:"small red onion, diced"},
+ {a:1,u:"",n:"jalapeño, diced"},{a:1,u:"",n:"garlic clove, minced"},{a:1,u:"tsp",n:"ground cumin"},
+ {a:0.5,u:"tsp",n:"cayenne pepper"},{a:1,u:"",n:"rotisserie chicken, skin removed and shredded"},{a:1,u:"cup",n:"salsa"},
+ {a:0.25,u:"cup",n:"chopped cilantro"},{a:1,u:"cup",n:"shredded cheddar/monterey jack blend"},{a:1,u:"",n:"lime, juiced"},
+ {a:null,u:"",n:"salt, to taste"},{a:null,u:"",n:"flour tortillas"}]},
+{id:"whiteenchiladas",name:"White Enchiladas",cat:"main",servings:4,prep:15,cook:25,ingr:[
+ {a:2.5,u:"tbsp",n:"butter"},{a:3,u:"tbsp",n:"flour"},{a:1,u:"cup",n:"milk"},{a:0.5,u:"cup",n:"light sour cream"},
+ {a:1,u:"cup",n:"chicken broth"},{a:0.5,u:"tsp",n:"cumin powder"},{a:2,u:"tbsp",n:"chopped jalapeño"},
+ {a:0.5,u:"tsp",n:"salt + pepper"},{a:2.5,u:"cups",n:"shredded cooked chicken"},{a:1,u:"cup",n:"frozen corn"},
+ {a:0.5,u:"cup",n:"sliced scallions"},{a:2,u:"cups",n:"grated cheese"},{a:null,u:"",n:"tortillas, flour or corn"}]},
+{id:"bruschetta",name:"Tomato + Basil Bruschetta",cat:"appetizer",servings:4,prep:5,cook:0,ingr:[
+ {a:null,u:"",n:"bread, baguette or sourdough"},{a:null,u:"",n:"extra virgin olive oil, for brushing"},
+ {a:1,u:"",n:"garlic clove, halved"},{a:4,u:"",n:"medium tomatoes"},{a:0.25,u:"cup",n:"basil, chopped"},
+ {a:1.5,u:"tbsp",n:"extra virgin olive oil"},{a:0.125,u:"tsp",n:"salt + pepper"}]},
+{id:"gives5burger",name:"5 Gives Burger",cat:"main",servings:4,prep:10,cook:7,ingr:[
+ {a:1,u:"lb",n:"ground beef"},{a:4,u:"",n:"sesame seed buns"},{a:4,u:"slices",n:"cheddar cheese"},
+ {a:2,u:"tbsp",n:"vegetable oil"},{a:null,u:"",n:"white onion, chopped"},{a:null,u:"",n:"pickle slices"},
+ {a:null,u:"",n:"lettuce"},{a:null,u:"",n:"extra toppings + fries"}]},
+{id:"cottagepie",name:"Cottage Pie",cat:"main",servings:8,prep:15,cook:60,ingr:[
+ {a:1.5,u:"tbsp",n:"olive oil"},{a:2,u:"",n:"garlic cloves, minced"},{a:1,u:"",n:"onion, finely chopped"},
+ {a:1,u:"",n:"carrot, finely chopped"},{a:1,u:"",n:"celery stalk, finely chopped"},{a:1.5,u:"lb",n:"ground beef"},
+ {a:0.25,u:"cup",n:"flour"},{a:0.25,u:"cup",n:"tomato paste"},{a:2,u:"cups",n:"beef stock or broth"},
+ {a:0.5,u:"cup",n:"red wine"},{a:1,u:"",n:"beef bouillon cube"},{a:2,u:"tbsp",n:"worcestershire sauce"},
+ {a:1,u:"tsp",n:"dried thyme"},{a:2,u:"",n:"dried bay leaves"},{a:0.75,u:"tsp",n:"salt"},{a:0.5,u:"tsp",n:"black pepper"},
+ {a:2.5,u:"lb",n:"potatoes, peeled and cubed"},{a:0.667,u:"cup",n:"warm milk"},{a:4,u:"tbsp",n:"butter, total"},
+ {a:2,u:"tbsp",n:"grated parmesan"}]},
+{id:"phillycheesesteak",name:"Philly Cheesesteak",cat:"main",servings:4,prep:15,cook:13,ingr:[
+ {a:1,u:"lb",n:"ribeye steak, trimmed and thinly sliced"},{a:0.5,u:"tsp",n:"sea salt"},{a:0.5,u:"tsp",n:"black pepper"},
+ {a:1,u:"",n:"sweet onion, diced"},{a:8,u:"slices",n:"provolone cheese"},{a:4,u:"",n:"hoagie rolls"},
+ {a:2,u:"tbsp",n:"unsalted butter, softened"},{a:1,u:"",n:"garlic clove, pressed"},{a:4,u:"tbsp",n:"mayo"}]},
+{id:"smashedpotatoes",name:"Smashed Potatoes",cat:"side",servings:12,prep:10,cook:30,ingr:[
+ {a:1.4,u:"lb",n:"small potatoes"},{a:2.2,u:"lb",n:"medium potatoes"},{a:1,u:"tbsp",n:"salt, for boiling water"},
+ {a:2,u:"tbsp",n:"unsalted butter, melted"},{a:1,u:"tbsp",n:"olive oil"},{a:0.75,u:"tsp",n:"salt"},
+ {a:0.25,u:"tsp",n:"black pepper"},{a:null,u:"",n:"chopped parsley, optional"}]},
+{id:"mashedpotatoes",name:"Mashed Potatoes",cat:"side",servings:3,prep:15,cook:15,ingr:[
+ {a:null,u:"",n:"kosher salt, to taste"},{a:1.5,u:"lb",n:"boiling potatoes"},{a:0.25,u:"cup",n:"milk"},
+ {a:4,u:"tbsp",n:"unsalted butter"},{a:0.5,u:"cup",n:"buttermilk"},{a:0.25,u:"tsp",n:"black pepper"}]}
+];
+const RECIPE_MAP = Object.fromEntries(RECIPES.map(r=>[r.id,r]));
+const DAYS = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
+
+/* ---------------- STATE ---------------- */
+let state = {
+  tab:"cookbook",
+  catFilter:"all",
+  plan: Object.fromEntries(DAYS.map(d=>[d,[]])),
+  pantry: {},
+  extras: [], // [{name}]
+  groceryChecked: {},
+  servingsOverride: {},
+  pickerFor: null,
+  pickerCat: "all",
+  pickerServ: {}
+};
+
+/* ---------------- HELPERS ---------------- */
+function timeTier(total){ return total<=30?1:(total<=90?2:3); }
+function timeLabel(total){ const t=timeTier(total); return t===1?"Quick":t===2?"Moderate":"Long"; }
+function fmtMin(m){ if(m<60) return m+" min"; const h=Math.floor(m/60), r=m%60; return r? h+"h "+r+"m" : h+"h"; }
+function curServings(r){ return state.servingsOverride[r.id] || r.servings; }
+function formatQty(n){
+  if(n==null) return "";
+  const whole = Math.floor(n+1e-6);
+  const frac = n - whole;
+  const map = [[0.125,"⅛"],[0.1667,"⅙"],[0.2,"⅕"],[0.25,"¼"],[0.333,"⅓"],[0.375,"⅜"],[0.4,"⅖"],
+    [0.5,"½"],[0.6,"⅗"],[0.625,"⅝"],[0.667,"⅔"],[0.75,"¾"],[0.8,"⅘"],[0.833,"⅚"],[0.875,"⅞"]];
+  if(frac<0.02) return String(whole);
+  let best=null,bestd=1;
+  for(const [v,s] of map){ const d=Math.abs(frac-v); if(d<bestd){bestd=d;best=s;} }
+  if(bestd<0.035) return (whole>0? whole+"":"") + best;
+  let val = Math.round(n*100)/100;
+  return String(val);
+}
+function ingrLine(item, mult){
+  if(item.a==null) return item.n.charAt(0).toUpperCase()+item.n.slice(1);
+  const scaled = item.a*mult;
+  const qty = formatQty(scaled);
+  const bits = [qty, item.u, item.n].filter(Boolean);
+  return bits.join(" ");
+}
+function cleanForPantry(name){
+  return name.replace(/,\s*(to taste|optional|for garnish|for topping|for dusting|for frying|for serving|as desired|for brushing|for boiling water|for icing|for filling|for sauce|for dredge|divided|total).*$/i,"").trim();
+}
+function cap(s){ return s.charAt(0).toUpperCase()+s.slice(1); }
+
+/* Maps every raw recipe ingredient string to a plain, deduplicated grocery-shopping name.
+   Recipe cards keep the full descriptive text (e.g. "unsalted butter, melted") since that
+   detail matters for cooking; Pantry and Grocery only need the shelf item (e.g. "Butter"). */
+const CANON = {
+"active dry yeast":"Yeast","adobo sauce":"Adobo Sauce","all-purpose flour":"Flour","all-purpose flour, total":"Flour",
+"ancho chili powder":"Ancho Chili Powder","apple cider vinegar":"Apple Cider Vinegar","arborio rice":"Arborio Rice",
+"artichoke hearts, chopped":"Artichoke Hearts","asiago or parmesan, grated":"Parmesan Cheese","bacon":"Bacon",
+"baking powder":"Baking Powder","baking soda":"Baking Soda","basil, chopped":"Basil","beef bouillon cube":"Beef Bouillon",
+"beef chunk, cheeks or chuck":"Beef Chuck","beef stock or broth":"Beef Broth","better than bouillon broth":"Beef Bouillon",
+"black pepper":"Black Pepper","black pepper, to taste":"Black Pepper","blue cheese dressing":"Blue Cheese Dressing",
+"boiling potatoes":"Potatoes","boneless skinless chicken breast":"Chicken Breast","boneless skinless chicken breast, about 5":"Chicken Breast",
+"boneless skinless chicken breasts":"Chicken Breast","boneless, skinless chicken breasts":"Chicken Breast","bread flour":"Bread Flour",
+"bread, baguette or sourdough":"Bread","brown sugar":"Brown Sugar","buffalo hot sauce":"Buffalo Sauce","buffalo sauce":"Buffalo Sauce",
+"buffalo style hot sauce":"Buffalo Sauce","butter":"Butter","butter, total":"Butter","buttermilk":"Buttermilk",
+"carrot, finely chopped":"Carrots","cayenne pepper":"Cayenne Pepper","cayenne pepper, pinch, optional":"Cayenne Pepper",
+"celery stalk, finely chopped":"Celery","cheddar cheese":"Cheddar Cheese","chicken breast tenderloins":"Chicken Breast",
+"chicken broth":"Chicken Broth","chicken stock":"Chicken Broth","chicken stock or broth":"Chicken Broth","chili powder":"Chili Powder",
+"chipotle chiles in adobo sauce":"Chipotle Peppers in Adobo","chipotle chili powder":"Chipotle Chili Powder","chives, for topping":"Chives",
+"chopped cilantro":"Cilantro","chopped jalapeño":"Jalapeños","chopped parsley, optional":"Parsley","cilantro, to taste":"Cilantro",
+"cinnamon":"Cinnamon","cinnamon stick":"Cinnamon Stick","coarse sugar, topping":"Sugar","cold unsalted butter, cubed":"Butter",
+"cooked bacon crumbles":"Bacon","cooked shredded chicken":"Chicken","corn tortillas":"Corn Tortillas",
+"corn tortillas + cheese, for serving":"Corn Tortillas & Cheese","corn, 3-4 ears":"Corn","cornflakes":"Cornflakes",
+"cornstarch":"Cornstarch","cornstarch, plus 2 tbsp for slurry":"Cornstarch","cotija cheese, for topping":"Cotija Cheese",
+"cracked pepper, to taste":"Black Pepper","cream cheese, room temp":"Cream Cheese","cream cheese, softened":"Cream Cheese",
+"cream cheese, softened + cubed":"Cream Cheese","crumbled blue cheese":"Blue Cheese","cumin":"Cumin","cumin powder":"Cumin",
+"dark brown sugar":"Brown Sugar","dark chocolate chips, optional":"Chocolate Chips","diced green chilies":"Green Chilies",
+"diced onions, a handful":"Onions","distilled white vinegar":"White Vinegar","dried bay leaves":"Bay Leaves","dried thyme":"Thyme",
+"dry mustard powder":"Mustard Powder","dry ranch dressing mix":"Ranch Seasoning Mix","egg yolks":"Eggs","eggs":"Eggs",
+"eggs, room temp":"Eggs","elbow macaroni":"Macaroni","evaporated milk, canned":"Evaporated Milk","extra toppings + fries":"Toppings & Fries",
+"extra virgin olive oil":"Olive Oil","extra virgin olive oil, for brushing":"Olive Oil","extra virgin olive oil, for drizzling":"Olive Oil",
+"fine salt":"Salt","flour":"Flour","flour tortillas":"Flour Tortillas","flour, for dusting":"Flour","fresh blueberries":"Blueberries",
+"fresh cilantro, for garnish":"Cilantro","fresh orange juice":"Orange Juice","frozen corn":"Corn","garlic + onion powder, to taste":"Garlic Powder",
+"garlic clove, halved":"Garlic","garlic clove, minced":"Garlic","garlic clove, pressed":"Garlic","garlic cloves":"Garlic",
+"garlic cloves, chopped":"Garlic","garlic cloves, crushed":"Garlic","garlic cloves, minced":"Garlic","garlic powder":"Garlic Powder",
+"garlic, minced":"Garlic","gold potatoes, peeled and diced":"Potatoes","granulated sugar":"Sugar","granulated sugar, for filling":"Sugar",
+"granulated sugar, total":"Sugar","grated cheese":"Cheese","grated parmesan":"Parmesan Cheese","green chilies, canned":"Green Chilies",
+"green onion, sliced":"Green Onions","green onions, sliced, for garnish":"Green Onions","ground beef":"Ground Beef",
+"ground cinnamon":"Cinnamon","ground cumin":"Cumin","ground ginger":"Ginger","ground pepper":"Black Pepper","heavy cream":"Heavy Cream",
+"hoagie rolls":"Hoagie Rolls","honey":"Honey","hot sauce":"Hot Sauce","hot sauce, for dredge":"Hot Sauce","hot sauce, for sauce":"Hot Sauce",
+"instant yeast":"Yeast","jalapeño, chopped":"Jalapeños","jalapeño, diced":"Jalapeños","ketchup":"Ketchup","kosher salt":"Salt",
+"kosher salt + black pepper, to taste":"Salt","kosher salt, for pasta water":"Salt","kosher salt, to taste":"Salt","large egg":"Eggs",
+"large egg, room temp":"Eggs","large eggs":"Eggs","large eggs, beaten":"Eggs","lemon zest":"Lemon","lettuce":"Lettuce",
+"light cream":"Cream","light sour cream":"Sour Cream","lime juice, optional, to taste":"Lime Juice","lime juice, to taste":"Lime Juice",
+"lime, juiced":"Limes","limes, juiced":"Limes","mayo":"Mayo","medium potatoes":"Potatoes","medium tomatoes":"Tomatoes",
+"medium yellow onion, chopped":"Onions","melted butter, for topping":"Butter","milk":"Milk","mozzarella":"Mozzarella Cheese",
+"mozzarella cheese":"Mozzarella Cheese","oil, for frying":"Vegetable Oil","olive oil":"Olive Oil","olive oil mayo, or greek yogurt":"Mayo",
+"onion powder":"Onion Powder","onion, finely chopped":"Onions","optional: caramelized onions, garlic, burrata, tomatoes":"Optional Toppings",
+"orange zest":"Orange","oregano":"Oregano","packed light brown sugar":"Brown Sugar","pancetta or block bacon":"Bacon",
+"panko breadcrumbs":"Panko Breadcrumbs","paprika":"Paprika","parmigiano reggiano, finely shredded":"Parmesan Cheese",
+"parsley, chopped":"Parsley","parsley, chopped, optional":"Parsley","pepper jack cheese":"Pepper Jack Cheese",
+"pepper jack, shredded":"Pepper Jack Cheese","pickle slices":"Pickles","pickled jalapeños":"Pickled Jalapeños",
+"potatoes, peeled and cubed":"Potatoes","powdered sugar":"Powdered Sugar","powdered sugar, for dusting":"Powdered Sugar",
+"provolone cheese":"Provolone Cheese","ranch dressing":"Ranch Dressing","rapid rise yeast":"Yeast","red wine":"Red Wine",
+"ribeye steak, trimmed and thinly sliced":"Ribeye Steak","rolls, as desired":"Rolls","rotisserie chicken, cooked and shredded":"Rotisserie Chicken",
+"rotisserie chicken, skin removed and shredded":"Rotisserie Chicken","salsa":"Salsa","salt":"Salt","salt + pepper":"Salt",
+"salt, for batter":"Salt","salt, for boiling water":"Salt","salt, to taste":"Salt","salted butter":"Butter",
+"san marzano tomatoes":"Canned Tomatoes","scallions, thinly sliced":"Green Onions","sea salt":"Salt","sea salt flakes":"Salt",
+"sea salt, to taste":"Salt","seasoned bread crumbs":"Bread Crumbs","sesame oil":"Sesame Oil","sesame seed buns":"Buns",
+"sesame seeds":"Sesame Seeds","sharp cheddar cheese":"Cheddar Cheese","shredded cheddar":"Cheddar Cheese",
+"shredded cheddar cheese, for topping":"Cheddar Cheese","shredded cheddar/monterey jack blend":"Cheddar Cheese",
+"shredded cooked chicken":"Chicken","shredded rotisserie chicken":"Rotisserie Chicken","sliced scallions":"Green Onions",
+"small potatoes":"Potatoes","small red onion, diced":"Onions","small yellow onion, chopped":"Onions","smoked paprika":"Smoked Paprika",
+"sour cream":"Sour Cream","soy sauce":"Soy Sauce","spaghetti":"Spaghetti","sriracha":"Sriracha","sugar":"Sugar",
+"sweet onion, diced":"Onions","texas toast":"Bread","tomato paste":"Tomato Paste","tomato paste, double concentrated":"Tomato Paste",
+"toppings: maple syrup, berries, powdered sugar, whipped cream":"Toppings","tortillas, flour or corn":"Tortillas","uncooked bacon":"Bacon",
+"unsalted butter":"Butter","unsalted butter, divided":"Butter","unsalted butter, for greasing pan":"Butter","unsalted butter, melted":"Butter",
+"unsalted butter, softened":"Butter","unsalted butter, softened, divided":"Butter","unsalted butter, softened, for icing":"Butter",
+"vanilla extract":"Vanilla Extract","vanilla extract, total":"Vanilla Extract","vegetable oil":"Vegetable Oil",
+"vegetable oil, for frying":"Vegetable Oil","vegetable or canola oil, for frying":"Vegetable Oil","very ripe bananas, mashed":"Bananas",
+"very warm water":"Water","warm milk":"Milk","warm water, 110°f":"Water","water":"Water","white american cheese":"American Cheese",
+"white onion, chopped":"Onions","white pepper":"White Pepper","white rice":"White Rice","whole milk":"Milk",
+"worcestershire sauce":"Worcestershire Sauce","yellow onion, chopped":"Onions","yellow onions, diced":"Onions"
+};
+function canonicalIngredient(rawName){
+  const key = rawName.trim().toLowerCase();
+  return CANON[key] || cap(cleanForPantry(rawName));
+}
+
+/* ---------------- PERSISTENCE ---------------- */
+function newId(){ return "ex-" + Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
+function docRef(uid){ return db.doc("users/"+uid+"/apps/bacon"); }
+function applyCloudData(data){
+  state.plan = (data && data.plan) || Object.fromEntries(DAYS.map(d=>[d,[]]));
+  state.pantry = (data && data.pantry) || {};
+  state.extras = (data && data.extras) || [];
+  state.extras = state.extras.map(ex=> typeof ex === "string" ? {id:newId(), name:ex, section:grocerySection(ex)} : ex);
+  state.groceryChecked = (data && data.groceryChecked) || {};
+  state.servingsOverride = (data && data.servingsOverride) || {};
+}
+function syncToCloud(){
+  const user = auth.currentUser;
+  if(!user) return;
+  docRef(user.uid).set({
+    plan: state.plan, pantry: state.pantry, extras: state.extras,
+    groceryChecked: state.groceryChecked, servingsOverride: state.servingsOverride
+  }, {merge:true}).catch(e=>console.error("sync failed", e));
+}
+let unsubscribeDoc = null;
+function showApp(){
+  document.getElementById("authgate").style.display = "none";
+  document.getElementById("app").style.display = "";
+  render();
+}
+function showAuthGate(){
+  document.getElementById("authgate").style.display = "";
+  document.getElementById("app").style.display = "none";
+}
+auth.onAuthStateChanged(user=>{
+  if(unsubscribeDoc){ unsubscribeDoc(); unsubscribeDoc = null; }
+  if(user){
+    unsubscribeDoc = docRef(user.uid).onSnapshot(snap=>{
+      applyCloudData(snap.data());
+      showApp();
+    }, err=>console.error(err));
+  } else {
+    showAuthGate();
+  }
+});
+function wireAuthGate(){
+  const errEl = document.getElementById("autherr");
+  const emailEl = document.getElementById("authemail");
+  const passEl = document.getElementById("authpassword");
+  document.getElementById("authsignin").onclick = ()=>{
+    errEl.textContent = "";
+    auth.signInWithEmailAndPassword(emailEl.value.trim(), passEl.value).catch(e=>{ errEl.textContent = e.message; });
+  };
+  document.getElementById("authsignup").onclick = ()=>{
+    errEl.textContent = "";
+    auth.createUserWithEmailAndPassword(emailEl.value.trim(), passEl.value).catch(e=>{ errEl.textContent = e.message; });
+  };
+}
+wireAuthGate();
+
+/* ---------------- RENDER ---------------- */
+const TABS = [
+  {id:"cookbook", label:"Cookbook", ico:"📖"},
+  {id:"planner", label:"Planner", ico:"🗓️"},
+  {id:"pantry", label:"Pantry", ico:"🧺"},
+  {id:"grocery", label:"Grocery", ico:"🛒"}
+];
+function render(){
+  const app = document.getElementById("app");
+  app.innerHTML = `
+    <header class="top">
+      <h1>Bacon</h1>
+      <div style="text-align:right;">
+        <div class="tag">weekly meals, planned and portioned</div>
+        <button class="signoutbtn" id="signoutbtn">Sign Out</button>
+      </div>
+    </header>
+    <div id="tabcontent"></div>
+    <nav class="bottombar">
+      ${TABS.map(t=>`<button data-tab="${t.id}" class="${state.tab===t.id?"active":""}"><span class="ico">${t.ico}</span>${t.label}</button>`).join("")}
+    </nav>
+  `;
+  app.querySelectorAll("nav.bottombar button").forEach(b=>{ b.onclick = ()=>{ state.tab=b.dataset.tab; window.scrollTo(0,0); render(); }; });
+  const signoutBtn = app.querySelector("#signoutbtn");
+  if(signoutBtn) signoutBtn.onclick = ()=> auth.signOut();
+  const c = document.getElementById("tabcontent");
+  if(state.tab==="cookbook") c.innerHTML = renderCookbook();
+  if(state.tab==="planner") c.innerHTML = renderPlanner();
+  if(state.tab==="pantry") c.innerHTML = renderPantry();
+  if(state.tab==="grocery") c.innerHTML = renderGrocery();
+  wireTabEvents();
+  if(state.pickerFor) renderPicker();
+}
+
+function renderCookbook(){
+  const cats = ["all","breakfast","appetizer","main","side"];
+  const list = RECIPES.filter(r=> state.catFilter==="all" || r.cat===state.catFilter);
+  return `
+    <p class="section-title">The Cookbook</p>
+    <p class="section-sub">${list.length} dishes &middot; adjust servings on any card to scale ingredients &middot; colored edge = dish type</p>
+    <div class="filters">
+      ${cats.map(c=>`<button data-catf="${c}" class="${state.catFilter===c?"active":""}">${c==="all"?"All":CATS[c].label}</button>`).join("")}
+    </div>
+    <div class="grid">${list.map(recipeCard).join("")}</div>
+  `;
+}
+function recipeCard(r){
+  const total = r.prep+r.cook;
+  const tier = timeTier(total);
+  const cat = CATS[r.cat];
+  const cur = curServings(r);
+  const mult = cur / r.servings;
+  return `
+  <div class="rcard" style="--tab-color:${cat.color}">
+    <h3>${r.name}</h3>
+    <div class="meta-row">
+      <span class="pill" style="background:${cat.bg};color:${cat.color}">${cat.label}</span>
+      <span class="timegauge" title="${timeLabel(total)} &middot; ${fmtMin(total)} total">
+        <span class="dot ${tier>=1?"on":""}"></span><span class="dot ${tier>=2?"on":""}"></span><span class="dot ${tier>=3?"on":""}"></span>
+        ${timeLabel(total)}
+      </span>
+      <span>${fmtMin(r.prep)} prep / ${fmtMin(r.cook)} cook</span>
+    </div>
+    <div class="servctl" data-servctl="${r.id}">
+      <button data-servdelta="-1" data-rid="${r.id}" data-base="${r.servings}">&minus;</button>
+      <span class="servlabel">${cur} serving${cur===1?"":"s"}</span>
+      <button data-servdelta="1" data-rid="${r.id}" data-base="${r.servings}">+</button>
+      ${cur!==r.servings? `<span class="resetlink" data-servreset="${r.id}">reset to ${r.servings}</span>`:""}
+    </div>
+    <div class="ingr"><b>Ingredients:</b> ${r.ingr.map(i=>ingrLine(i,mult)).join(", ")}</div>
+  </div>`;
+}
+
+function renderPlanner(){
+  return `
+    <p class="section-title">Weekly Planner</p>
+    <p class="section-sub">Pick meals per day and set servings right when you add them. Each day totals its prep+cook time; chip color shows dish type.</p>
+    <div class="week">
+      ${DAYS.map(day=>{
+        const entries = state.plan[day] || [];
+        const totalTime = entries.reduce((s,e)=>{ const r=RECIPE_MAP[e.id]; return r? s+r.prep+r.cook : s; },0);
+        return `
+        <div class="day">
+          <h4>${day}</h4>
+          <div class="daytime">${entries.length? fmtMin(totalTime)+" total" : "no meals yet"}</div>
+          ${entries.map((e,idx)=>{
+            const r = RECIPE_MAP[e.id];
+            if(!r) return "";
+            return `<div class="chip" style="--chipcolor:${CATS[r.cat].color}">
+              <span class="chipname">${r.name}<span class="chipserv">${e.servings} serving${e.servings===1?"":"s"}</span></span>
+              <span class="x" data-remove="${day}|${idx}">&times;</span>
+            </div>`;
+          }).join("")}
+          <button class="addslot" data-openpicker="${day}">+ Add meal</button>
+        </div>`;
+      }).join("")}
+    </div>
+  `;
+}
+
+function renderPicker(){
+  const day = state.pickerFor;
+  const overlay = document.createElement("div");
+  overlay.className = "overlay";
+  const filtered = RECIPES.filter(r=> state.pickerCat==="all" || r.cat===state.pickerCat);
+  overlay.innerHTML = `
+    <div class="modal">
+      <h3>Add a meal &middot; ${day}</h3>
+      <div class="filters">
+        ${["all","breakfast","appetizer","main","side"].map(c=>`<button data-pcatf="${c}" class="${state.pickerCat===c?"active":""}">${c==="all"?"All":CATS[c].label}</button>`).join("")}
+      </div>
+      <div class="picklist">
+        ${filtered.map(r=>{
+          const total = r.prep+r.cook;
+          const chosen = state.pickerServ[r.id] || r.servings;
+          return `<div class="pickitem">
+            <div>
+              <div class="pname">${r.name}</div>
+              <div class="pmeta">${CATS[r.cat].label} &middot; ${fmtMin(total)} &middot; base ${r.servings} servings</div>
+            </div>
+            <div class="pright">
+              <div class="servctl" data-pickctl="${r.id}">
+                <button data-pdelta="-1" data-rid="${r.id}">&minus;</button>
+                <span class="servlabel">${chosen}</span>
+                <button data-pdelta="1" data-rid="${r.id}">+</button>
+              </div>
+              <button class="addbtn" data-addmeal="${r.id}">Add</button>
+            </div>
+          </div>`;
+        }).join("")}
+      </div>
+      <button class="closebtn" id="closepicker">Done</button>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+  overlay.onclick = (e)=>{ if(e.target===overlay){ state.pickerFor=null; document.body.removeChild(overlay); } };
+  document.getElementById("closepicker").onclick = ()=>{ state.pickerFor=null; document.body.removeChild(overlay); };
+  overlay.querySelectorAll("[data-pcatf]").forEach(b=>{
+    b.onclick = ()=>{ state.pickerCat = b.dataset.pcatf; document.body.removeChild(overlay); renderPicker(); };
+  });
+  overlay.querySelectorAll("[data-pdelta]").forEach(b=>{
+    b.onclick = ()=>{
+      const rid = b.dataset.rid;
+      const r = RECIPE_MAP[rid];
+      const cur = state.pickerServ[rid] || r.servings;
+      const next = Math.max(1, cur + parseInt(b.dataset.pdelta,10));
+      state.pickerServ[rid] = next;
+      document.body.removeChild(overlay);
+      renderPicker();
+    };
+  });
+  overlay.querySelectorAll("[data-addmeal]").forEach(b=>{
+    b.onclick = ()=>{
+      const rid = b.dataset.addmeal;
+      const r = RECIPE_MAP[rid];
+      const servings = state.pickerServ[rid] || r.servings;
+      state.plan[day] = state.plan[day] || [];
+      state.plan[day].push({id:rid, servings});
+      syncToCloud();
+      document.body.removeChild(overlay);
+      renderPicker();
+    };
+  });
+}
+
+function allPantryNamesBySection(){
+  const set = new Map();
+  RECIPES.forEach(r=>r.ingr.forEach(i=>{
+    const n = canonicalIngredient(i.n);
+    if(n && !set.has(n.toLowerCase())) set.set(n.toLowerCase(), n);
+  }));
+  const bySection = {};
+  set.forEach(name=>{
+    const sec = grocerySection(name);
+    (bySection[sec] = bySection[sec] || []).push(name);
+  });
+  Object.values(bySection).forEach(arr=>arr.sort((a,b)=>a.localeCompare(b)));
+  return bySection;
+}
+
+function renderPantry(){
+  const bySection = allPantryNamesBySection();
+  return `
+    <p class="section-title">Pantry</p>
+    <p class="section-sub">Mark what's on hand, grouped the way your grocery aisles are &mdash; the Grocery List skips anything marked Have.</p>
+    ${SECTION_ORDER.filter(s=>bySection[s]).map(sec=>{
+      const col = SECTIONS[sec];
+      return `<div class="secblock">
+        <div class="sechead" style="background:${col.bg};color:${col.color}">${sec}</div>
+        <div class="pantrylist">${bySection[sec].map(n=>pantryRow(n)).join("")}</div>
+      </div>`;
+    }).join("")}
+
+    <div class="secblock" style="border-color:var(--plum);">
+      <div class="sechead" style="background:var(--plum-bg);color:var(--plum)">Weekly Extras &middot; not tied to a recipe</div>
+      <div class="pantrylist">
+        ${state.extras.length===0? `<div class="prow"><span style="color:var(--ink-soft);font-style:italic;">No extras added yet &mdash; chips, crackers, frozen fruit, snacks, anything else you need this week. Add them from the Grocery tab.</span></div>` :
+          state.extras.map((ex)=>{
+            const st = state.pantry[ex.name.toLowerCase()] || "need";
+            return `<div class="prow">
+              <span>${ex.name} <span class="src" style="margin-left:6px;">${ex.section}</span></span>
+              <div class="statusbtns" data-item="${ex.name}">
+                <button class="have ${st==="have"?"on":""}" data-status="have">Have</button>
+                <button class="low ${st==="low"?"on":""}" data-status="low">Low</button>
+                <button class="need ${st==="need"?"on":""}" data-status="need">Need</button>
+              </div>
+              <span class="rmx" data-rmextra="${ex.id}">&times;</span>
+            </div>`;
+          }).join("")}
+      </div>
+    </div>
+  `;
+}
+function pantryRow(n){
+  const st = state.pantry[n.toLowerCase()] || "need";
+  return `<div class="prow">
+    <span>${n}</span>
+    <div class="statusbtns" data-item="${n}">
+      <button class="have ${st==="have"?"on":""}" data-status="have">Have</button>
+      <button class="low ${st==="low"?"on":""}" data-status="low">Low</button>
+      <button class="need ${st==="need"?"on":""}" data-status="need">Need</button>
+    </div>
+  </div>`;
+}
+
+function extraAddRow(){
+  return `
+  <div class="addrow">
+    <input type="text" id="newextra" placeholder="Add something you need (sauces, frozen fruit, snacks...)">
+    <select id="newextrasection">
+      ${SECTION_ORDER.map(s=>`<option value="${s}">${s}</option>`).join("")}
+    </select>
+    <button id="addextrabtn">Add</button>
+  </div>`;
+}
+function renderGrocery(){
+  const hasAnyMeals = DAYS.some(d=> (state.plan[d]||[]).length>0);
+  const hasExtras = state.extras.length>0;
+  if(!hasAnyMeals && !hasExtras){
+    return `
+      <p class="section-title">Grocery List</p>
+      <p class="section-sub">Built automatically from your Weekly Planner, plus anything else you add below.</p>
+      <div class="empty">Nothing planned yet &mdash; add meals in the Planner tab, or add an item below and your list builds itself here, grouped by grocery section.</div>
+      <div class="secblock" style="border-color:var(--plum);margin-top:18px;">
+        <div class="sechead" style="background:var(--plum-bg);color:var(--plum)">Other Items &middot; not tied to a recipe</div>
+        ${extraAddRow()}
+      </div>
+    `;
+  }
+  const agg = new Map();
+  const flag = new Map();
+  DAYS.forEach(day=>{
+    (state.plan[day]||[]).forEach(entry=>{
+      const r = RECIPE_MAP[entry.id];
+      if(!r) return;
+      const mult = entry.servings / r.servings;
+      r.ingr.forEach(item=>{
+        const cname = canonicalIngredient(item.n);
+        if(item.a==null){
+          const key = cname.toLowerCase();
+          if(!flag.has(key)) flag.set(key,{name:cname, sources:new Set()});
+          flag.get(key).sources.add(r.name);
+        } else {
+          const key = cname.toLowerCase()+"|"+item.u;
+          if(!agg.has(key)) agg.set(key,{name:cname, unit:item.u, amt:0, sources:new Set()});
+          const rec = agg.get(key);
+          rec.amt += item.a*mult;
+          rec.sources.add(r.name);
+        }
+      });
+    });
+  });
+  const combined = [];
+  agg.forEach(v=> combined.push({
+    name: v.name, lookup: v.name.toLowerCase(),
+    display: [formatQty(v.amt), v.unit, v.name].filter(Boolean).join(" "),
+    sources: Array.from(v.sources)
+  }));
+  flag.forEach(v=> combined.push({
+    name: v.name, lookup: v.name.toLowerCase(), display: v.name, sources: Array.from(v.sources)
+  }));
+  state.extras.forEach(ex=> combined.push({
+    name: cap(ex.name), lookup: ex.name.toLowerCase(), display: cap(ex.name), sources: ["Weekly Extra"], section: ex.section
+  }));
+  const need = combined.filter(it=> (state.pantry[it.lookup]||"need") !== "have");
+  const have = combined.filter(it=> (state.pantry[it.lookup]||"need") === "have");
+  const mealNeed = need.filter(it=> !it.sources.includes("Weekly Extra"));
+  const extraNeed = need.filter(it=> it.sources.includes("Weekly Extra"));
+
+  const bySection = {};
+  mealNeed.forEach(it=>{
+    const sec = grocerySection(it.name);
+    (bySection[sec] = bySection[sec] || []).push(it);
+  });
+  Object.values(bySection).forEach(arr=>arr.sort((a,b)=>a.name.localeCompare(b.name)));
+
+  const byExtraSection = {};
+  extraNeed.forEach(it=>{
+    (byExtraSection[it.section] = byExtraSection[it.section] || []).push(it);
+  });
+  Object.values(byExtraSection).forEach(arr=>arr.sort((a,b)=>a.name.localeCompare(b.name)));
+
+  const glistBlock = (it)=>{
+    const checked = state.groceryChecked[it.lookup];
+    return `<div class="grow ${checked?"done":""}">
+      <input type="checkbox" data-gcheck="${it.lookup}" ${checked?"checked":""}/>
+      <span>${it.display}</span>
+      <span class="src">${it.sources.join(", ")}</span>
+    </div>`;
+  };
+
+  return `
+    <p class="section-title">Grocery List</p>
+    <p class="section-sub">From this week's planned meals, at the servings you chose &middot; ${mealNeed.length} to pick up &middot; grouped like your store aisles</p>
+    ${SECTION_ORDER.filter(s=>bySection[s]).map(sec=>{
+      const col = SECTIONS[sec];
+      return `<div class="secblock">
+        <div class="sechead" style="background:${col.bg};color:${col.color}">${sec}</div>
+        <div class="glist">${bySection[sec].map(glistBlock).join("")}</div>
+      </div>`;
+    }).join("")}
+    ${mealNeed.length===0? `<div class="empty">No meals planned this week &mdash; add some in the Planner tab.</div>`:""}
+
+    <p class="section-title" style="margin-top:28px;">Other Items</p>
+    <p class="section-sub">Sauces, snacks, frozen fruit &mdash; anything you need that's not tied to a recipe, kept separate from your meal groceries above.</p>
+    <div class="secblock" style="border-color:var(--plum);">
+      <div class="sechead" style="background:var(--plum-bg);color:var(--plum)">Add an item</div>
+      ${extraAddRow()}
+    </div>
+    ${SECTION_ORDER.filter(s=>byExtraSection[s]).map(sec=>{
+      const col = SECTIONS[sec];
+      return `<div class="secblock">
+        <div class="sechead" style="background:${col.bg};color:${col.color}">${sec}</div>
+        <div class="glist">
+          ${byExtraSection[sec].map(it=>{
+            const checked = state.groceryChecked[it.lookup];
+            const ex = state.extras.find(e=>e.name.toLowerCase()===it.lookup);
+            return `<div class="grow ${checked?"done":""}">
+              <input type="checkbox" data-gcheck="${it.lookup}" ${checked?"checked":""}/>
+              <span>${it.display}</span>
+              ${ex? `<span class="rmx" data-rmextra="${ex.id}">&times;</span>` : ""}
+            </div>`;
+          }).join("")}
+        </div>
+      </div>`;
+    }).join("")}
+    ${extraNeed.length===0? `<div class="empty">No extra items yet &mdash; add one above.</div>`:""}
+
+    ${have.length? `<div class="secblock havepanel" style="margin-top:28px;">
+      <div class="sechead" style="background:var(--sage-bg);color:var(--sage)">Already in your pantry</div>
+      <div class="glist">
+        ${have.map(it=>`<div class="grow"><span class="tag-have">Have</span><span>${it.display}</span><span class="src">${it.sources.join(", ")}</span></div>`).join("")}
+      </div>
+    </div>`:""}
+  `;
+}
+
+/* ---------------- EVENTS ---------------- */
+function wireTabEvents(){
+  const c = document.getElementById("tabcontent");
+  c.querySelectorAll("[data-catf]").forEach(b=>{ b.onclick = ()=>{ state.catFilter=b.dataset.catf; render(); }; });
+
+  c.querySelectorAll("[data-servdelta]").forEach(b=>{
+    b.onclick = ()=>{
+      const rid = b.dataset.rid;
+      const base = parseInt(b.dataset.base,10);
+      const cur = state.servingsOverride[rid] || base;
+      const next = Math.max(1, cur + parseInt(b.dataset.servdelta,10));
+      state.servingsOverride[rid] = next;
+      syncToCloud();
+      render();
+    };
+  });
+  c.querySelectorAll("[data-servreset]").forEach(el=>{
+    el.onclick = ()=>{ delete state.servingsOverride[el.dataset.servreset]; syncToCloud(); render(); };
+  });
+
+  c.querySelectorAll("[data-openpicker]").forEach(b=>{
+    b.onclick = ()=>{ state.pickerFor=b.dataset.openpicker; state.pickerCat="all"; state.pickerServ={}; render(); };
+  });
+  c.querySelectorAll("[data-remove]").forEach(el=>{
+    el.onclick = ()=>{
+      const [day, idx] = el.dataset.remove.split("|");
+      state.plan[day].splice(parseInt(idx,10),1);
+      syncToCloud();
+      render();
+    };
+  });
+
+  c.querySelectorAll(".statusbtns").forEach(group=>{
+    const item = group.dataset.item;
+    group.querySelectorAll("button").forEach(btn=>{
+      btn.onclick = ()=>{
+        state.pantry[item.toLowerCase()] = btn.dataset.status;
+        syncToCloud();
+        render();
+      };
+    });
+  });
+  const addExtraBtn = document.getElementById("addextrabtn");
+  if(addExtraBtn){
+    addExtraBtn.onclick = ()=>{
+      const input = document.getElementById("newextra");
+      const sectionSelect = document.getElementById("newextrasection");
+      const val = input.value.trim();
+      if(val){
+        const section = sectionSelect ? sectionSelect.value : grocerySection(val);
+        state.extras.push({id:newId(), name:val, section});
+        syncToCloud();
+        render();
+      }
+    };
+  }
+  c.querySelectorAll("[data-rmextra]").forEach(el=>{
+    el.onclick = ()=>{
+      state.extras = state.extras.filter(ex=>ex.id!==el.dataset.rmextra);
+      syncToCloud();
+      render();
+    };
+  });
+
+  c.querySelectorAll("[data-gcheck]").forEach(cb=>{
+    cb.onchange = ()=>{
+      state.groceryChecked[cb.dataset.gcheck] = cb.checked;
+      syncToCloud();
+    };
+  });
+}
+</script>
+</body>
+</html>
