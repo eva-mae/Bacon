@@ -118,12 +118,21 @@ nav.bottombar button.active{color:var(--ink);font-weight:700;background:var(--pa
 .tag-have{font-size:10px;text-transform:uppercase;letter-spacing:.5px;background:var(--sage-bg);color:var(--sage);padding:2px 7px;border-radius:20px;font-weight:700;}
 .empty{color:var(--ink-soft);font-size:13.5px;padding:30px;text-align:center;border:1px dashed var(--line);border-radius:4px;}
 
+.cookbookhead{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;flex-wrap:wrap;}
+.addrecipebtn{font-family:inherit;font-size:11px;text-transform:uppercase;letter-spacing:.5px;border:1.5px solid var(--ink);background:transparent;color:var(--ink);padding:7px 14px;border-radius:20px;cursor:pointer;white-space:nowrap;flex-shrink:0;}
+.addrecipebtn.on{background:var(--ink);color:var(--parchment);}
+.recipeform{padding:14px;display:flex;flex-direction:column;gap:10px;}
+.recipeform input, .recipeform select, .recipeform textarea{padding:9px 10px;border:1px solid var(--line);border-radius:3px;font-family:inherit;font-size:13px;background:var(--card);color:var(--ink);}
+.recipeform textarea{resize:vertical;font-family:inherit;}
+.recipeformrow{display:flex;gap:8px;flex-wrap:wrap;}
+.recipeformrow input{flex:1;min-width:100px;}
 .linkfield{display:flex;align-items:center;gap:8px;}
 .linkfield input{width:150px;padding:5px 6px;border:1px solid var(--line);border-radius:3px;font-family:inherit;font-size:12px;background:var(--card);color:var(--ink-soft);}
 .linkfield input::placeholder{color:var(--ink-soft);opacity:.6;}
 .buybtn{font-family:inherit;font-size:10.5px;text-transform:uppercase;letter-spacing:.5px;border:1.5px solid var(--ink);background:var(--ink);color:var(--parchment);padding:5px 11px;border-radius:20px;cursor:pointer;text-decoration:none;white-space:nowrap;}
 .editlink{cursor:pointer;color:var(--ink-soft);font-size:13px;padding:2px 4px;flex-shrink:0;}
 .editlink:hover{color:var(--ink);}
+.catedit{font-family:inherit;font-size:10px;text-transform:uppercase;letter-spacing:.5px;padding:3px 8px;border-radius:20px;border:1px solid var(--line);background:var(--card);color:var(--ink);}
 .authwrap{max-width:380px;margin:80px auto;padding:0 16px;}
 .authbox{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:24px;}
 .authbox h2{font-family:"Iowan Old Style","Palatino Linotype",Georgia,serif;font-style:italic;margin:0 0 4px;font-size:24px;}
@@ -173,8 +182,11 @@ const CATS = {
   breakfast:{label:"Breakfast", color:"var(--gold)", bg:"var(--gold-bg)"},
   appetizer:{label:"Appetizer", color:"var(--sage)", bg:"var(--sage-bg)"},
   main:{label:"Main", color:"var(--rust)", bg:"var(--rust-bg)"},
-  side:{label:"Side", color:"var(--blue)", bg:"var(--blue-bg)"}
+  side:{label:"Side", color:"var(--blue)", bg:"var(--blue-bg)"},
+  sauce:{label:"Sauces & Extras", color:"var(--terracotta)", bg:"var(--terracotta-bg)"},
+  dessert:{label:"Dessert", color:"var(--plum)", bg:"var(--plum-bg)"}
 };
+const CAT_KEYS = ["all","breakfast","appetizer","main","side","sauce","dessert"];
 const SECTIONS = {
   "Produce":{color:"var(--sage)", bg:"var(--sage-bg)"},
   "Meat & Seafood":{color:"var(--rust)", bg:"var(--rust-bg)"},
@@ -364,9 +376,59 @@ const RECIPES = [
  {a:0.25,u:"tsp",n:"black pepper"},{a:null,u:"",n:"chopped parsley, optional"}]},
 {id:"mashedpotatoes",name:"Mashed Potatoes",cat:"side",servings:3,prep:15,cook:15,ingr:[
  {a:null,u:"",n:"kosher salt, to taste"},{a:1.5,u:"lb",n:"boiling potatoes"},{a:0.25,u:"cup",n:"milk"},
- {a:4,u:"tbsp",n:"unsalted butter"},{a:0.5,u:"cup",n:"buttermilk"},{a:0.25,u:"tsp",n:"black pepper"}]}
+ {a:4,u:"tbsp",n:"unsalted butter"},{a:0.5,u:"cup",n:"buttermilk"},{a:0.25,u:"tsp",n:"black pepper"}]},
+{id:"buttermilkranch",name:"Homemade Buttermilk Ranch",cat:"sauce",servings:3,prep:10,cook:0,ingr:[
+ {a:0.5,u:"cup",n:"sour cream"},{a:0.5,u:"cup",n:"buttermilk"},{a:0.25,u:"cup",n:"mayo"},
+ {a:2,u:"",n:"garlic cloves"},{a:1,u:"tsp",n:"salt"},{a:0.25,u:"tsp",n:"black pepper"},
+ {a:1.5,u:"tsp",n:"dried dill"},{a:0.25,u:"cup",n:"chives, finely chopped"},{a:2,u:"tsp",n:"lemon juice"},
+ {a:null,u:"",n:"tabasco sauce, optional"}]},
+{id:"hourfocaccia",name:"1 Hour Focaccia",cat:"side",servings:6,prep:20,cook:60,ingr:[
+ {a:500,u:"g",n:"bread flour"},{a:375,u:"g",n:"water"},{a:10,u:"g",n:"instant yeast"},
+ {a:12,u:"g",n:"salt"},{a:30,u:"g",n:"olive oil, for dough"},{a:30,u:"g",n:"olive oil, for pan"},
+ {a:1,u:"tsp",n:"salt, for topping"},{a:null,u:"",n:"tomatoes, optional"},{a:null,u:"",n:"garlic powder, optional"},
+ {a:2,u:"tbsp",n:"fresh rosemary"}]},
+{id:"buckeyebars",name:"Buckeye Bars",cat:"dessert",servings:40,prep:15,cook:0,ingr:[
+ {a:0.5,u:"cup",n:"unsalted butter, melted"},{a:2.125,u:"cups",n:"powdered sugar"},
+ {a:0.875,u:"cup",n:"creamy peanut butter"},{a:0.625,u:"tsp",n:"vanilla extract"},
+ {a:4,u:"oz",n:"chocolate bar"},{a:0.625,u:"tbsp",n:"butter"}]},
+{id:"raspberrysauce",name:"Raspberry Sauce",cat:"sauce",servings:2,prep:10,cook:4,ingr:[
+ {a:1,u:"package",n:"fresh raspberries"},{a:0.5,u:"cup",n:"granulated sugar"},{a:0.25,u:"cup",n:"water"},
+ {a:1,u:"cup",n:"raspberry jam"},{a:1,u:"tbsp",n:"framboise liqueur"}]},
+{id:"buttercreamfrosting",name:"Buttercream Frosting",cat:"sauce",servings:12,prep:5,cook:5,ingr:[
+ {a:1,u:"tbsp",n:"vanilla extract"},{a:1,u:"lb",n:"powdered sugar"},{a:1,u:"cup",n:"unsalted butter, room temp"},
+ {a:3,u:"tbsp",n:"heavy cream"},{a:0.5,u:"tsp",n:"salt"}]},
+{id:"chocbuttercream",name:"Chocolate Buttercream Frosting",cat:"sauce",servings:12,prep:6,cook:0,ingr:[
+ {a:0.5,u:"cup",n:"unsalted butter, softened"},{a:1.5,u:"cups",n:"powdered sugar"},{a:0.25,u:"cup",n:"cocoa powder"},
+ {a:2,u:"tbsp",n:"heavy cream"},{a:1,u:"tsp",n:"vanilla extract"},{a:0.125,u:"tsp",n:"salt"}]},
+{id:"chickfilasauce",name:"Chick-fil-A Sauce",cat:"sauce",servings:2,prep:5,cook:0,ingr:[
+ {a:0.25,u:"cup",n:"mayo"},{a:1,u:"tsp",n:"mustard"},{a:1,u:"tbsp",n:"barbecue sauce"},{a:1,u:"tbsp",n:"honey"}]},
+{id:"picodegallo",name:"Pico De Gallo",cat:"sauce",servings:8,prep:15,cook:0,ingr:[
+ {a:5,u:"",n:"tomatoes"},{a:0.5,u:"",n:"small red onion, diced"},{a:1,u:"",n:"jalapeño, chopped"},
+ {a:0.5,u:"bunch",n:"chopped cilantro"},{a:3,u:"",n:"garlic cloves"},{a:0.5,u:"",n:"lime, juiced"},
+ {a:null,u:"",n:"salt + pepper"}]},
+{id:"generaltsossauce",name:"General Tso's Sauce",cat:"sauce",servings:4,prep:5,cook:5,ingr:[
+ {a:0.5,u:"cup",n:"water"},{a:5,u:"tbsp",n:"soy sauce"},{a:3,u:"tbsp",n:"rice vinegar"},
+ {a:1.5,u:"tbsp",n:"hoisin sauce"},{a:4,u:"tbsp",n:"granulated sugar"},{a:1.5,u:"tbsp",n:"cornstarch"}]},
+{id:"hothoneysauce",name:"Hot Honey Sauce",cat:"sauce",servings:4,prep:5,cook:5,ingr:[
+ {a:0.5,u:"cup",n:"honey"},{a:3,u:"tbsp",n:"hot sauce"},{a:3,u:"tsp",n:"cayenne pepper"},
+ {a:0.75,u:"tsp",n:"chipotle chili powder"},{a:0.5,u:"tsp",n:"garlic powder"},{a:0.5,u:"tsp",n:"onion powder"}]},
+{id:"carnitastacos",name:"Carnitas Tacos",cat:"main",servings:2,prep:15,cook:540,ingr:[
+ {a:4,u:"lb",n:"pork shoulder"},{a:0.75,u:"cup",n:"coca-cola"},{a:2,u:"tsp",n:"salt"},{a:2,u:"tsp",n:"black pepper"},
+ {a:1,u:"tbsp",n:"oregano"},{a:1,u:"tbsp",n:"ground cumin"},{a:1.5,u:"tsp",n:"paprika"},
+ {a:2,u:"tsp",n:"ancho chili powder"},{a:2,u:"tsp",n:"chili powder"},{a:2,u:"tsp",n:"onion powder"},
+ {a:2,u:"tsp",n:"garlic powder"},{a:2,u:"",n:"yellow onion, chopped"},{a:10,u:"",n:"garlic cloves, minced"},
+ {a:2,u:"cups",n:"fresh orange juice"},{a:1,u:"",n:"lime, juiced"},{a:2,u:"",n:"dried bay leaves"}]},
+{id:"alfredosauce",name:"Alfredo Sauce",cat:"main",servings:3,prep:15,cook:15,ingr:[
+ {a:12,u:"oz",n:"pasta"},{a:6,u:"tbsp",n:"unsalted butter"},{a:4,u:"",n:"garlic cloves, minced"},
+ {a:0.5,u:"cup",n:"white wine"},{a:6,u:"oz",n:"cream cheese, cut up"},{a:2.5,u:"cups",n:"heavy cream"},
+ {a:2,u:"cups",n:"grated parmesan"},{a:0.5,u:"tsp",n:"salt"},{a:1.5,u:"cups",n:"shredded rotisserie chicken"}]},
+{id:"margheritapizza",name:"Margherita Pizza",cat:"main",servings:3,prep:180,cook:15,ingr:[
+ {a:600,u:"g",n:"bread flour"},{a:2,u:"tsp",n:"instant yeast"},{a:2.5,u:"tsp",n:"salt"},
+ {a:20,u:"g",n:"sugar"},{a:4,u:"tbsp",n:"olive oil"},{a:330,u:"ml",n:"water"},
+ {a:1,u:"tbsp",n:"flour, for dusting"},{a:2,u:"tsp",n:"olive oil"},{a:130,u:"g",n:"mozzarella"},
+ {a:0.25,u:"cup",n:"pizza sauce"}]}
 ];
-const RECIPE_MAP = Object.fromEntries(RECIPES.map(r=>[r.id,r]));
+let RECIPE_MAP = Object.fromEntries(RECIPES.map(r=>[r.id,r]));
 const DAYS = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
 
 /* ---------------- STATE ---------------- */
@@ -380,10 +442,48 @@ let state = {
   servingsOverride: {},
   itemLinks: {},
   editingLink: {},
+  customRecipes: [],
+  catOverrides: {},
+  addingRecipe: false,
+  editingRecipeCat: {},
   pickerFor: null,
   pickerCat: "all",
   pickerServ: {}
 };
+
+function allRecipes(){ return RECIPES.concat(state.customRecipes); }
+function rebuildRecipeMap(){ RECIPE_MAP = Object.fromEntries(allRecipes().map(r=>[r.id,r])); }
+function effectiveCat(r){ return state.catOverrides[r.id] || r.cat; }
+
+const UNIT_WORDS = ["cups","cup","tbsp","tablespoons","tablespoon","tsp","teaspoons","teaspoon","oz","ounces","ounce",
+"lb","lbs","pound","pounds","g","grams","gram","kg","ml","l","liter","liters","can","cans","clove","cloves",
+"slice","slices","stick","sticks","pinch","bunch","package","packages","jar","jars"];
+function parseIngredientLine(line){
+  const trimmed = line.trim();
+  if(!trimmed) return null;
+  const m = trimmed.match(/^(\d+\s+\d+\/\d+|\d+\/\d+|\d*\.\d+|\d+)\s*(.*)$/);
+  if(!m) return {a:null, u:"", n:trimmed};
+  let amt = m[1];
+  if(amt.includes(" ")){
+    const [whole, frac] = amt.split(" ");
+    const [num,den] = frac.split("/");
+    amt = parseInt(whole,10) + (parseInt(num,10)/parseInt(den,10));
+  } else if(amt.includes("/")){
+    const [num,den] = amt.split("/");
+    amt = parseInt(num,10)/parseInt(den,10);
+  } else {
+    amt = parseFloat(amt);
+  }
+  let rest = m[2].trim();
+  let unit = "";
+  const words = rest.split(/\s+/);
+  const firstWord = (words[0]||"").toLowerCase().replace(/[.,]/g,"");
+  if(UNIT_WORDS.includes(firstWord)){
+    unit = firstWord.replace(/s$/,"")==="cup"?firstWord:firstWord;
+    rest = words.slice(1).join(" ");
+  }
+  return {a:amt, u:unit, n:rest.trim()};
+}
 
 function getLink(key){
   if(key.indexOf("pantry:")===0) return state.itemLinks[key.slice(7)] || "";
@@ -515,7 +615,15 @@ const CANON = {
 "vegetable oil, for frying":"Vegetable Oil","vegetable or canola oil, for frying":"Vegetable Oil","very ripe bananas, mashed":"Bananas",
 "very warm water":"Water","warm milk":"Milk","warm water, 110°f":"Water","water":"Water","white american cheese":"American Cheese",
 "white onion, chopped":"Onions","white pepper":"White Pepper","white rice":"White Rice","whole milk":"Milk",
-"worcestershire sauce":"Worcestershire Sauce","yellow onion, chopped":"Onions","yellow onions, diced":"Onions"
+"worcestershire sauce":"Worcestershire Sauce","yellow onion, chopped":"Onions","yellow onions, diced":"Onions",
+"fresh rosemary":"Rosemary","creamy peanut butter":"Peanut Butter","chocolate bar":"Chocolate Bar",
+"fresh raspberries":"Raspberries","raspberry jam":"Raspberry Jam","framboise liqueur":"Framboise Liqueur",
+"unsalted butter, room temp":"Butter","cocoa powder":"Cocoa Powder","mustard":"Mustard",
+"barbecue sauce":"Barbecue Sauce","rice vinegar":"Rice Vinegar","hoisin sauce":"Hoisin Sauce",
+"coca-cola":"Coca-Cola","pasta":"Pasta","white wine":"White Wine","cream cheese, cut up":"Cream Cheese",
+"pizza sauce":"Pizza Sauce","olive oil, for dough":"Olive Oil","olive oil, for pan":"Olive Oil",
+"garlic powder, optional":"Garlic Powder","tomatoes, optional":"Tomatoes","tomatoes":"Tomatoes",
+"tabasco sauce, optional":"Tabasco Sauce","dried dill":"Dill","chives, finely chopped":"Chives"
 };
 function canonicalIngredient(rawName){
   const key = rawName.trim().toLowerCase();
@@ -533,6 +641,9 @@ function applyCloudData(data){
   state.groceryChecked = (data && data.groceryChecked) || {};
   state.servingsOverride = (data && data.servingsOverride) || {};
   state.itemLinks = (data && data.itemLinks) || {};
+  state.customRecipes = (data && data.customRecipes) || [];
+  state.catOverrides = (data && data.catOverrides) || {};
+  rebuildRecipeMap();
 }
 function syncToCloud(){
   const user = auth.currentUser;
@@ -540,6 +651,7 @@ function syncToCloud(){
   docRef(user.uid).set({
     plan: state.plan, pantry: state.pantry, extras: state.extras,
     groceryChecked: state.groceryChecked, servingsOverride: state.servingsOverride,
+    customRecipes: state.customRecipes, catOverrides: state.catOverrides,
     itemLinks: state.itemLinks
   }, {merge:true}).catch(e=>console.error("sync failed", e));
 }
@@ -614,28 +726,65 @@ function render(){
 }
 
 function renderCookbook(){
-  const cats = ["all","breakfast","appetizer","main","side"];
-  const list = RECIPES.filter(r=> state.catFilter==="all" || r.cat===state.catFilter);
+  const cats = CAT_KEYS;
+  const list = allRecipes().filter(r=> state.catFilter==="all" || effectiveCat(r)===state.catFilter);
   return `
-    <p class="section-title">The Cookbook</p>
-    <p class="section-sub">${list.length} dishes &middot; adjust servings on any card to scale ingredients &middot; colored edge = dish type</p>
+    <div class="cookbookhead">
+      <div>
+        <p class="section-title">The Cookbook</p>
+        <p class="section-sub">${list.length} dishes &middot; adjust servings on any card to scale ingredients &middot; colored edge = dish type</p>
+      </div>
+      <button class="addrecipebtn ${state.addingRecipe?"on":""}" id="toggleaddrecipe">${state.addingRecipe? "Cancel" : "+ Add Recipe"}</button>
+    </div>
+    ${state.addingRecipe ? addRecipeForm() : ""}
     <div class="filters">
       ${cats.map(c=>`<button data-catf="${c}" class="${state.catFilter===c?"active":""}">${c==="all"?"All":CATS[c].label}</button>`).join("")}
     </div>
     <div class="grid">${list.map(recipeCard).join("")}</div>
   `;
 }
+function addRecipeForm(){
+  return `
+  <div class="secblock" style="border-color:var(--terracotta);margin-bottom:18px;">
+    <div class="sechead" style="background:var(--terracotta-bg);color:var(--terracotta)">New Recipe</div>
+    <div class="recipeform">
+      <input type="text" id="newrecipename" placeholder="Recipe name">
+      <select id="newrecipecat">
+        ${["breakfast","appetizer","main","side","sauce","dessert"].map(c=>`<option value="${c}">${CATS[c].label}</option>`).join("")}
+      </select>
+      <div class="recipeformrow">
+        <input type="number" id="newrecipeservings" placeholder="Servings" min="1" value="4">
+        <input type="number" id="newrecipeprep" placeholder="Prep (min)" min="0" value="15">
+        <input type="number" id="newrecipecook" placeholder="Cook (min)" min="0" value="20">
+      </div>
+      <textarea id="newrecipeingr" rows="6" placeholder="One ingredient per line, e.g.
+2 cups flour
+1 tsp salt
+eggs"></textarea>
+      <div class="addrow" style="padding:0;">
+        <button id="saverecipebtn">Save Recipe</button>
+      </div>
+    </div>
+  </div>`;
+}
 function recipeCard(r){
   const total = r.prep+r.cook;
   const tier = timeTier(total);
-  const cat = CATS[r.cat];
+  const catKey = effectiveCat(r);
+  const cat = CATS[catKey];
+  const editingCat = !!state.editingRecipeCat[r.id];
   const cur = curServings(r);
   const mult = cur / r.servings;
   return `
   <div class="rcard" style="--tab-color:${cat.color}">
     <h3>${r.name}</h3>
     <div class="meta-row">
-      <span class="pill" style="background:${cat.bg};color:${cat.color}">${cat.label}</span>
+      ${editingCat
+        ? `<select class="catedit" data-catedit="${r.id}">
+            ${["breakfast","appetizer","main","side","sauce","dessert"].map(c=>`<option value="${c}" ${c===catKey?"selected":""}>${CATS[c].label}</option>`).join("")}
+          </select>`
+        : `<span class="pill" style="background:${cat.bg};color:${cat.color}">${cat.label}</span><span class="editlink" data-editcat="${r.id}" title="Change category">&#9998;</span>`
+      }
       <span class="timegauge" title="${timeLabel(total)} &middot; ${fmtMin(total)} total">
         <span class="dot ${tier>=1?"on":""}"></span><span class="dot ${tier>=2?"on":""}"></span><span class="dot ${tier>=3?"on":""}"></span>
         ${timeLabel(total)}
@@ -667,7 +816,7 @@ function renderPlanner(){
           ${entries.map((e,idx)=>{
             const r = RECIPE_MAP[e.id];
             if(!r) return "";
-            return `<div class="chip" style="--chipcolor:${CATS[r.cat].color}">
+            return `<div class="chip" style="--chipcolor:${CATS[effectiveCat(r)].color}">
               <span class="chipname">${r.name}<span class="chipserv">${e.servings} serving${e.servings===1?"":"s"}</span></span>
               <span class="x" data-remove="${day}|${idx}">&times;</span>
             </div>`;
@@ -684,12 +833,12 @@ function renderPicker(){
   const day = state.pickerFor;
   const overlay = document.createElement("div");
   overlay.className = "overlay";
-  const filtered = RECIPES.filter(r=> state.pickerCat==="all" || r.cat===state.pickerCat);
+  const filtered = allRecipes().filter(r=> state.pickerCat==="all" || effectiveCat(r)===state.pickerCat);
   overlay.innerHTML = `
     <div class="modal">
       <h3>Add a meal &middot; ${day}</h3>
       <div class="filters">
-        ${["all","breakfast","appetizer","main","side"].map(c=>`<button data-pcatf="${c}" class="${state.pickerCat===c?"active":""}">${c==="all"?"All":CATS[c].label}</button>`).join("")}
+        ${CAT_KEYS.map(c=>`<button data-pcatf="${c}" class="${state.pickerCat===c?"active":""}">${c==="all"?"All":CATS[c].label}</button>`).join("")}
       </div>
       <div class="picklist">
         ${filtered.map(r=>{
@@ -698,7 +847,7 @@ function renderPicker(){
           return `<div class="pickitem">
             <div>
               <div class="pname">${r.name}</div>
-              <div class="pmeta">${CATS[r.cat].label} &middot; ${fmtMin(total)} &middot; base ${r.servings} servings</div>
+              <div class="pmeta">${CATS[effectiveCat(r)].label} &middot; ${fmtMin(total)} &middot; base ${r.servings} servings</div>
             </div>
             <div class="pright">
               <div class="servctl" data-pickctl="${r.id}">
@@ -748,7 +897,7 @@ function renderPicker(){
 
 function allPantryNamesBySection(){
   const set = new Map();
-  RECIPES.forEach(r=>r.ingr.forEach(i=>{
+  allRecipes().forEach(r=>r.ingr.forEach(i=>{
     const n = canonicalIngredient(i.n);
     if(n && !set.has(n.toLowerCase())) set.set(n.toLowerCase(), n);
   }));
@@ -939,6 +1088,42 @@ function renderGrocery(){
 function wireTabEvents(){
   const c = document.getElementById("tabcontent");
   c.querySelectorAll("[data-catf]").forEach(b=>{ b.onclick = ()=>{ state.catFilter=b.dataset.catf; render(); }; });
+
+  const toggleAddRecipe = document.getElementById("toggleaddrecipe");
+  if(toggleAddRecipe){
+    toggleAddRecipe.onclick = ()=>{ state.addingRecipe = !state.addingRecipe; render(); };
+  }
+  const saveRecipeBtn = document.getElementById("saverecipebtn");
+  if(saveRecipeBtn){
+    saveRecipeBtn.onclick = ()=>{
+      const name = document.getElementById("newrecipename").value.trim();
+      if(!name) return;
+      const cat = document.getElementById("newrecipecat").value;
+      const servings = Math.max(1, parseInt(document.getElementById("newrecipeservings").value,10) || 1);
+      const prep = Math.max(0, parseInt(document.getElementById("newrecipeprep").value,10) || 0);
+      const cook = Math.max(0, parseInt(document.getElementById("newrecipecook").value,10) || 0);
+      const lines = document.getElementById("newrecipeingr").value.split("\n").map(l=>l.trim()).filter(Boolean);
+      const ingr = lines.map(parseIngredientLine).filter(Boolean);
+      const id = "customrecipe-" + Date.now().toString(36) + Math.random().toString(36).slice(2,6);
+      state.customRecipes.push({id, name, cat, servings, prep, cook, ingr});
+      rebuildRecipeMap();
+      syncToCloud();
+      state.addingRecipe = false;
+      render();
+    };
+  }
+  c.querySelectorAll("[data-editcat]").forEach(el=>{
+    el.onclick = ()=>{ state.editingRecipeCat[el.dataset.editcat] = true; render(); };
+  });
+  c.querySelectorAll("[data-catedit]").forEach(sel=>{
+    sel.onchange = ()=>{
+      const id = sel.dataset.catedit;
+      state.catOverrides[id] = sel.value;
+      delete state.editingRecipeCat[id];
+      syncToCloud();
+      render();
+    };
+  });
 
   c.querySelectorAll("[data-servdelta]").forEach(b=>{
     b.onclick = ()=>{
