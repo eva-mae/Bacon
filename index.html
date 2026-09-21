@@ -133,6 +133,9 @@ nav.bottombar button.active{color:var(--ink);font-weight:700;background:var(--pa
 .editlink{cursor:pointer;color:var(--ink-soft);font-size:13px;padding:2px 4px;flex-shrink:0;}
 .editlink:hover{color:var(--ink);}
 .catedit{font-family:inherit;font-size:10px;text-transform:uppercase;letter-spacing:.5px;padding:3px 8px;border-radius:20px;border:1px solid var(--line);background:var(--card);color:var(--ink);}
+.nameedit{border:1px solid var(--line);border-radius:3px;padding:5px 7px;background:var(--parchment);color:var(--ink);font-family:inherit;font-size:13.5px;flex:1;min-width:120px;}
+.tag-extra{font-size:9.5px;text-transform:uppercase;letter-spacing:.5px;background:var(--plum-bg);color:var(--plum);padding:2px 7px;border-radius:20px;font-weight:700;margin-right:6px;flex-shrink:0;}
+.extrarow{border-left:3px solid var(--plum);}
 .authwrap{max-width:380px;margin:80px auto;padding:0 16px;}
 .authbox{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:24px;}
 .authbox h2{font-family:"Iowan Old Style","Palatino Linotype",Georgia,serif;font-style:italic;margin:0 0 4px;font-size:24px;}
@@ -195,10 +198,9 @@ const SECTIONS = {
   "Frozen":{color:"var(--blue)", bg:"var(--blue-bg)"},
   "Pantry & Dry Goods":{color:"var(--olive)", bg:"var(--olive-bg)"},
   "Condiments & Seasonings":{color:"var(--terracotta)", bg:"var(--terracotta-bg)"},
-  "Snacks & Extras":{color:"var(--plum)", bg:"var(--plum-bg)"},
-  "Other":{color:"var(--grey)", bg:"var(--grey-bg)"}
+  "Snacks & Extras":{color:"var(--plum)", bg:"var(--plum-bg)"}
 };
-const SECTION_ORDER = ["Produce","Meat & Seafood","Dairy & Eggs","Bakery & Bread","Frozen","Pantry & Dry Goods","Condiments & Seasonings","Snacks & Extras","Other"];
+const SECTION_ORDER = ["Produce","Meat & Seafood","Dairy & Eggs","Bakery & Bread","Frozen","Pantry & Dry Goods","Condiments & Seasonings","Snacks & Extras"];
 
 function grocerySection(name){
   const n = name.toLowerCase();
@@ -213,8 +215,9 @@ function grocerySection(name){
     ["Produce",["onion","garlic","tomato","potato","carrot","celery","lemon","lime","orange","jalape","cilantro","parsley","basil","scallion","banana","blueberr","corn","lettuce","chive"]]
   ];
   for(const [sec,kws] of rules) if(kws.some(k=>n.includes(k))) return sec;
-  return "Other";
+  return "Pantry & Dry Goods";
 }
+function effectiveSection(name){ return state.sectionOverrides[name.toLowerCase()] || grocerySection(name); }
 
 // ingredient shape: {a: amount(number|null), u: unit string, n: name}
 const RECIPES = [
@@ -446,6 +449,13 @@ let state = {
   catOverrides: {},
   addingRecipe: false,
   editingRecipeCat: {},
+  pantryNameOverrides: {},
+  editingPantryName: {},
+  pantryMerges: {},
+  mergingPantry: {},
+  sectionOverrides: {},
+  editingPantrySection: {},
+  pantryHidden: {},
   pickerFor: null,
   pickerCat: "all",
   pickerServ: {}
@@ -586,7 +596,8 @@ const CANON = {
 "instant yeast":"Yeast","jalapeño, chopped":"Jalapeños","jalapeño, diced":"Jalapeños","ketchup":"Ketchup","kosher salt":"Salt",
 "kosher salt + black pepper, to taste":"Salt","kosher salt, for pasta water":"Salt","kosher salt, to taste":"Salt","large egg":"Eggs",
 "large egg, room temp":"Eggs","large eggs":"Eggs","large eggs, beaten":"Eggs","lemon zest":"Lemon","lettuce":"Lettuce",
-"light cream":"Cream","light sour cream":"Sour Cream","lime juice, optional, to taste":"Lime Juice","lime juice, to taste":"Lime Juice",
+"light cream":"Heavy Cream","light sour cream":"Sour Cream","lime juice, optional, to taste":"Limes","lime juice, to taste":"Limes",
+"lemon juice":"Lemon",
 "lime, juiced":"Limes","limes, juiced":"Limes","mayo":"Mayo","medium potatoes":"Potatoes","medium tomatoes":"Tomatoes",
 "medium yellow onion, chopped":"Onions","melted butter, for topping":"Butter","milk":"Milk","mozzarella":"Mozzarella Cheese",
 "mozzarella cheese":"Mozzarella Cheese","oil, for frying":"Vegetable Oil","olive oil":"Olive Oil","olive oil mayo, or greek yogurt":"Mayo",
@@ -625,9 +636,22 @@ const CANON = {
 "garlic powder, optional":"Garlic Powder","tomatoes, optional":"Tomatoes","tomatoes":"Tomatoes",
 "tabasco sauce, optional":"Tabasco Sauce","dried dill":"Dill","chives, finely chopped":"Chives"
 };
+function resolveCanonical(name){
+  let cur = name;
+  const seen = new Set();
+  while(state.pantryMerges[cur.toLowerCase()] && !seen.has(cur.toLowerCase())){
+    seen.add(cur.toLowerCase());
+    cur = state.pantryMerges[cur.toLowerCase()];
+  }
+  return cur;
+}
 function canonicalIngredient(rawName){
   const key = rawName.trim().toLowerCase();
-  return CANON[key] || cap(cleanForPantry(rawName));
+  const base = CANON[key] || cap(cleanForPantry(rawName));
+  return resolveCanonical(base);
+}
+function displayPantryName(canonicalName){
+  return state.pantryNameOverrides[canonicalName.toLowerCase()] || canonicalName;
 }
 
 /* ---------------- PERSISTENCE ---------------- */
@@ -643,6 +667,10 @@ function applyCloudData(data){
   state.itemLinks = (data && data.itemLinks) || {};
   state.customRecipes = (data && data.customRecipes) || [];
   state.catOverrides = (data && data.catOverrides) || {};
+  state.pantryNameOverrides = (data && data.pantryNameOverrides) || {};
+  state.pantryMerges = (data && data.pantryMerges) || {};
+  state.sectionOverrides = (data && data.sectionOverrides) || {};
+  state.pantryHidden = (data && data.pantryHidden) || {};
   rebuildRecipeMap();
 }
 function syncToCloud(){
@@ -652,6 +680,8 @@ function syncToCloud(){
     plan: state.plan, pantry: state.pantry, extras: state.extras,
     groceryChecked: state.groceryChecked, servingsOverride: state.servingsOverride,
     customRecipes: state.customRecipes, catOverrides: state.catOverrides,
+    pantryNameOverrides: state.pantryNameOverrides, pantryMerges: state.pantryMerges,
+    sectionOverrides: state.sectionOverrides, pantryHidden: state.pantryHidden,
     itemLinks: state.itemLinks
   }, {merge:true}).catch(e=>console.error("sync failed", e));
 }
@@ -899,11 +929,11 @@ function allPantryNamesBySection(){
   const set = new Map();
   allRecipes().forEach(r=>r.ingr.forEach(i=>{
     const n = canonicalIngredient(i.n);
-    if(n && !set.has(n.toLowerCase())) set.set(n.toLowerCase(), n);
+    if(n && !state.pantryHidden[n.toLowerCase()] && !set.has(n.toLowerCase())) set.set(n.toLowerCase(), n);
   }));
   const bySection = {};
   set.forEach(name=>{
-    const sec = grocerySection(name);
+    const sec = effectiveSection(name);
     (bySection[sec] = bySection[sec] || []).push(name);
   });
   Object.values(bySection).forEach(arr=>arr.sort((a,b)=>a.localeCompare(b)));
@@ -912,49 +942,77 @@ function allPantryNamesBySection(){
 
 function renderPantry(){
   const bySection = allPantryNamesBySection();
+  const extrasBySection = {};
+  state.extras.forEach(ex=>{ (extrasBySection[ex.section] = extrasBySection[ex.section] || []).push(ex); });
+  const allNames = Object.values(bySection).flat();
   return `
     <p class="section-title">Pantry</p>
-    <p class="section-sub">Mark what's on hand, grouped the way your grocery aisles are &mdash; the Grocery List skips anything marked Have.</p>
-    ${SECTION_ORDER.filter(s=>bySection[s]).map(sec=>{
+    <p class="section-sub">Mark what's on hand, grouped the way your grocery aisles are &mdash; the Grocery List skips anything marked Have. Items you add yourself are tagged "Extra". Use &#8646; to merge a duplicate into another item.</p>
+    <div class="secblock" style="border-color:var(--plum);margin-bottom:18px;">
+      <div class="sechead" style="background:var(--plum-bg);color:var(--plum)">Add an item</div>
+      ${extraAddRow()}
+    </div>
+    ${SECTION_ORDER.filter(s=>bySection[s] || extrasBySection[s]).map(sec=>{
       const col = SECTIONS[sec];
+      const extraRows = (extrasBySection[sec]||[]).map(ex=>extraPantryRow(ex)).join("");
+      const recipeRows = (bySection[sec]||[]).map(n=>pantryRow(n, allNames)).join("");
       return `<div class="secblock">
         <div class="sechead" style="background:${col.bg};color:${col.color}">${sec}</div>
-        <div class="pantrylist">${bySection[sec].map(n=>pantryRow(n)).join("")}</div>
+        <div class="pantrylist">${extraRows}${recipeRows}</div>
       </div>`;
     }).join("")}
-
-    <div class="secblock" style="border-color:var(--plum);">
-      <div class="sechead" style="background:var(--plum-bg);color:var(--plum)">Other Items &middot; not tied to a recipe</div>
-      ${extraAddRow()}
-      <div class="pantrylist">
-        ${state.extras.length===0? `<div class="prow"><span style="color:var(--ink-soft);font-style:italic;">No extras added yet &mdash; chips, crackers, frozen fruit, snacks, anything else you need this week. Mark them Need when you're ready to buy them &mdash; they'll show up on your Grocery List.</span></div>` :
-          state.extras.map((ex)=>{
-            const st = state.pantry[ex.name.toLowerCase()] || "need";
-            return `<div class="prow">
-              <span>${ex.name} <span class="src" style="margin-left:6px;">${ex.section}</span></span>
-              <div class="statusbtns" data-item="${ex.name}">
-                <button class="have ${st==="have"?"on":""}" data-status="have">Have</button>
-                <button class="low ${st==="low"?"on":""}" data-status="low">Low</button>
-                <button class="need ${st==="need"?"on":""}" data-status="need">Need</button>
-              </div>
-              ${linkFieldHTML("extra:"+ex.id)}
-              <span class="rmx" data-rmextra="${ex.id}">&times;</span>
-            </div>`;
-          }).join("")}
-      </div>
-    </div>
   `;
 }
-function pantryRow(n){
-  const st = state.pantry[n.toLowerCase()] || "need";
+function pantryRow(n, allNames){
+  const key = n.toLowerCase();
+  const st = state.pantry[key] || "need";
+  const displayName = state.pantryNameOverrides[key] || n;
+  const editing = !!state.editingPantryName[key];
+  const merging = !!state.mergingPantry[key];
+  const nameCell = editing
+    ? `<input type="text" class="nameedit" data-renamepantry="${key}" value="${displayName}">`
+    : `<span>${displayName}</span><span class="editlink" data-editpantryname="${key}" title="Rename">&#9998;</span>`;
+  const mergeCell = merging
+    ? `<select class="catedit" data-mergeselect="${key}">
+        <option value="">Merge into...</option>
+        ${allNames.filter(x=>x.toLowerCase()!==key).sort((a,b)=>a.localeCompare(b)).map(x=>`<option value="${x}">${x}</option>`).join("")}
+      </select><span class="editlink" data-cancelmerge="${key}" title="Cancel">&times;</span>`
+    : `<span class="editlink" data-startmerge="${key}" title="Merge into another item">&#8646;</span>`;
+  const editingSection = !!state.editingPantrySection[key];
+  const curSection = effectiveSection(n);
+  const sectionCell = editingSection
+    ? `<select class="catedit" data-sectionedit="${key}">
+        ${SECTION_ORDER.map(s=>`<option value="${s}" ${s===curSection?"selected":""}>${s}</option>`).join("")}
+      </select>`
+    : `<span class="editlink" data-editsection="${key}" title="Move to a different section">&#128230;</span>`;
   return `<div class="prow">
-    <span>${n}</span>
+    ${nameCell}
+    ${mergeCell}
+    ${sectionCell}
     <div class="statusbtns" data-item="${n}">
       <button class="have ${st==="have"?"on":""}" data-status="have">Have</button>
       <button class="low ${st==="low"?"on":""}" data-status="low">Low</button>
       <button class="need ${st==="need"?"on":""}" data-status="need">Need</button>
     </div>
     ${linkFieldHTML("pantry:"+n)}
+    <span class="rmx" data-hidepantry="${key}" title="Delete from Pantry">&times;</span>
+  </div>`;
+}
+function extraPantryRow(ex){
+  const st = state.pantry[ex.name.toLowerCase()] || "need";
+  const editing = !!state.editingPantryName["extra:"+ex.id];
+  const nameCell = editing
+    ? `<input type="text" class="nameedit" data-renameextra="${ex.id}" value="${ex.name}">`
+    : `<span class="tag-extra">Extra</span><span>${ex.name}</span><span class="editlink" data-editextraname="${ex.id}" title="Rename">&#9998;</span>`;
+  return `<div class="prow extrarow">
+    ${nameCell}
+    <div class="statusbtns" data-item="${ex.name}">
+      <button class="have ${st==="have"?"on":""}" data-status="have">Have</button>
+      <button class="low ${st==="low"?"on":""}" data-status="low">Low</button>
+      <button class="need ${st==="need"?"on":""}" data-status="need">Need</button>
+    </div>
+    ${linkFieldHTML("extra:"+ex.id)}
+    <span class="rmx" data-rmextra="${ex.id}">&times;</span>
   </div>`;
 }
 
@@ -1004,11 +1062,11 @@ function renderGrocery(){
   const combined = [];
   agg.forEach(v=> combined.push({
     name: v.name, lookup: v.name.toLowerCase(),
-    display: [formatQty(v.amt), v.unit, v.name].filter(Boolean).join(" "),
+    display: [formatQty(v.amt), v.unit, displayPantryName(v.name)].filter(Boolean).join(" "),
     sources: Array.from(v.sources)
   }));
   flag.forEach(v=> combined.push({
-    name: v.name, lookup: v.name.toLowerCase(), display: v.name, sources: Array.from(v.sources)
+    name: v.name, lookup: v.name.toLowerCase(), display: displayPantryName(v.name), sources: Array.from(v.sources)
   }));
   state.extras.forEach(ex=> combined.push({
     name: cap(ex.name), lookup: ex.name.toLowerCase(), display: cap(ex.name), sources: ["Weekly Extra"], section: ex.section
@@ -1021,7 +1079,7 @@ function renderGrocery(){
 
   const bySection = {};
   mealNeed.forEach(it=>{
-    const sec = grocerySection(it.name);
+    const sec = effectiveSection(it.name);
     (bySection[sec] = bySection[sec] || []).push(it);
   });
   Object.values(bySection).forEach(arr=>arr.sort((a,b)=>a.name.localeCompare(b.name)));
@@ -1120,6 +1178,77 @@ function wireTabEvents(){
       const id = sel.dataset.catedit;
       state.catOverrides[id] = sel.value;
       delete state.editingRecipeCat[id];
+      syncToCloud();
+      render();
+    };
+  });
+  c.querySelectorAll("[data-editpantryname]").forEach(el=>{
+    el.onclick = ()=>{ state.editingPantryName[el.dataset.editpantryname] = true; render(); };
+  });
+  c.querySelectorAll("[data-renamepantry]").forEach(inp=>{
+    inp.onchange = ()=>{
+      const key = inp.dataset.renamepantry;
+      const val = inp.value.trim();
+      if(val) state.pantryNameOverrides[key] = val; else delete state.pantryNameOverrides[key];
+      delete state.editingPantryName[key];
+      syncToCloud();
+      render();
+    };
+  });
+  c.querySelectorAll("[data-editextraname]").forEach(el=>{
+    el.onclick = ()=>{ state.editingPantryName["extra:"+el.dataset.editextraname] = true; render(); };
+  });
+  c.querySelectorAll("[data-renameextra]").forEach(inp=>{
+    inp.onchange = ()=>{
+      const id = inp.dataset.renameextra;
+      const val = inp.value.trim();
+      const ex = state.extras.find(e=>e.id===id);
+      if(ex && val) ex.name = val;
+      delete state.editingPantryName["extra:"+id];
+      syncToCloud();
+      render();
+    };
+  });
+  c.querySelectorAll("[data-startmerge]").forEach(el=>{
+    el.onclick = ()=>{ state.mergingPantry[el.dataset.startmerge] = true; render(); };
+  });
+  c.querySelectorAll("[data-cancelmerge]").forEach(el=>{
+    el.onclick = ()=>{ delete state.mergingPantry[el.dataset.cancelmerge]; render(); };
+  });
+  c.querySelectorAll("[data-mergeselect]").forEach(sel=>{
+    sel.onchange = ()=>{
+      const key = sel.dataset.mergeselect;
+      const target = sel.value;
+      if(target){
+        state.pantryMerges[key] = target;
+        delete state.pantry[key];
+        delete state.itemLinks[key];
+        delete state.pantryNameOverrides[key];
+      }
+      delete state.mergingPantry[key];
+      syncToCloud();
+      render();
+    };
+  });
+  c.querySelectorAll("[data-editsection]").forEach(el=>{
+    el.onclick = ()=>{ state.editingPantrySection[el.dataset.editsection] = true; render(); };
+  });
+  c.querySelectorAll("[data-sectionedit]").forEach(sel=>{
+    sel.onchange = ()=>{
+      const key = sel.dataset.sectionedit;
+      state.sectionOverrides[key] = sel.value;
+      delete state.editingPantrySection[key];
+      syncToCloud();
+      render();
+    };
+  });
+  c.querySelectorAll("[data-hidepantry]").forEach(el=>{
+    el.onclick = ()=>{
+      const key = el.dataset.hidepantry;
+      state.pantryHidden[key] = true;
+      delete state.pantry[key];
+      delete state.itemLinks[key];
+      delete state.pantryNameOverrides[key];
       syncToCloud();
       render();
     };
