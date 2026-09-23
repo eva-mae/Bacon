@@ -456,6 +456,7 @@ let state = {
   sectionOverrides: {},
   editingPantrySection: {},
   pantryHidden: {},
+  pantryEditMode: false,
   pickerFor: null,
   pickerCat: "all",
   pickerServ: {}
@@ -946,8 +947,13 @@ function renderPantry(){
   state.extras.forEach(ex=>{ (extrasBySection[ex.section] = extrasBySection[ex.section] || []).push(ex); });
   const allNames = Object.values(bySection).flat();
   return `
-    <p class="section-title">Pantry</p>
-    <p class="section-sub">Mark what's on hand, grouped the way your grocery aisles are &mdash; the Grocery List skips anything marked Have. Items you add yourself are tagged "Extra". Use &#8646; to merge a duplicate into another item.</p>
+    <div class="cookbookhead">
+      <div>
+        <p class="section-title">Pantry</p>
+        <p class="section-sub">Mark what's on hand, grouped the way your grocery aisles are &mdash; the Grocery List skips anything marked Have. Items you add yourself are tagged "Extra".</p>
+      </div>
+      <button class="addrecipebtn ${state.pantryEditMode?"on":""}" id="togglepantryedit">${state.pantryEditMode? "Done Editing" : "Edit Items"}</button>
+    </div>
     <div class="secblock" style="border-color:var(--plum);margin-bottom:18px;">
       <div class="sechead" style="background:var(--plum-bg);color:var(--plum)">Add an item</div>
       ${extraAddRow()}
@@ -967,24 +973,25 @@ function pantryRow(n, allNames){
   const key = n.toLowerCase();
   const st = state.pantry[key] || "need";
   const displayName = state.pantryNameOverrides[key] || n;
-  const editing = !!state.editingPantryName[key];
+  const editMode = state.pantryEditMode;
   const merging = !!state.mergingPantry[key];
-  const nameCell = editing
+  const editingSection = !!state.editingPantrySection[key];
+  const nameCell = editMode
     ? `<input type="text" class="nameedit" data-renamepantry="${key}" value="${displayName}">`
-    : `<span>${displayName}</span><span class="editlink" data-editpantryname="${key}" title="Rename">&#9998;</span>`;
-  const mergeCell = merging
+    : `<span>${displayName}</span>`;
+  const mergeCell = !editMode ? "" : (merging
     ? `<select class="catedit" data-mergeselect="${key}">
         <option value="">Merge into...</option>
         ${allNames.filter(x=>x.toLowerCase()!==key).sort((a,b)=>a.localeCompare(b)).map(x=>`<option value="${x}">${x}</option>`).join("")}
       </select><span class="editlink" data-cancelmerge="${key}" title="Cancel">&times;</span>`
-    : `<span class="editlink" data-startmerge="${key}" title="Merge into another item">&#8646;</span>`;
-  const editingSection = !!state.editingPantrySection[key];
+    : `<span class="editlink" data-startmerge="${key}" title="Merge into another item">&#8646;</span>`);
   const curSection = effectiveSection(n);
-  const sectionCell = editingSection
+  const sectionCell = !editMode ? "" : (editingSection
     ? `<select class="catedit" data-sectionedit="${key}">
         ${SECTION_ORDER.map(s=>`<option value="${s}" ${s===curSection?"selected":""}>${s}</option>`).join("")}
       </select>`
-    : `<span class="editlink" data-editsection="${key}" title="Move to a different section">&#128230;</span>`;
+    : `<span class="editlink" data-editsection="${key}" title="Move to a different section">&#128230;</span>`);
+  const deleteCell = editMode ? `<span class="rmx" data-hidepantry="${key}" title="Delete from Pantry">&times;</span>` : "";
   return `<div class="prow">
     ${nameCell}
     ${mergeCell}
@@ -995,15 +1002,16 @@ function pantryRow(n, allNames){
       <button class="need ${st==="need"?"on":""}" data-status="need">Need</button>
     </div>
     ${linkFieldHTML("pantry:"+n)}
-    <span class="rmx" data-hidepantry="${key}" title="Delete from Pantry">&times;</span>
+    ${deleteCell}
   </div>`;
 }
 function extraPantryRow(ex){
   const st = state.pantry[ex.name.toLowerCase()] || "need";
+  const editMode = state.pantryEditMode;
   const editing = !!state.editingPantryName["extra:"+ex.id];
-  const nameCell = editing
+  const nameCell = editMode && editing
     ? `<input type="text" class="nameedit" data-renameextra="${ex.id}" value="${ex.name}">`
-    : `<span class="tag-extra">Extra</span><span>${ex.name}</span><span class="editlink" data-editextraname="${ex.id}" title="Rename">&#9998;</span>`;
+    : `<span class="tag-extra">Extra</span><span>${ex.name}</span>${editMode? `<span class="editlink" data-editextraname="${ex.id}" title="Rename">&#9998;</span>` : ""}`;
   return `<div class="prow extrarow">
     ${nameCell}
     <div class="statusbtns" data-item="${ex.name}">
@@ -1096,6 +1104,7 @@ function renderGrocery(){
       <input type="checkbox" data-gcheck="${it.lookup}" ${checked?"checked":""}/>
       <span>${it.display}</span>
       <span class="src">${it.sources.join(", ")}</span>
+      ${linkFieldHTML("pantry:"+it.name)}
     </div>`;
   };
 
@@ -1150,6 +1159,10 @@ function wireTabEvents(){
   const toggleAddRecipe = document.getElementById("toggleaddrecipe");
   if(toggleAddRecipe){
     toggleAddRecipe.onclick = ()=>{ state.addingRecipe = !state.addingRecipe; render(); };
+  }
+  const togglePantryEdit = document.getElementById("togglepantryedit");
+  if(togglePantryEdit){
+    togglePantryEdit.onclick = ()=>{ state.pantryEditMode = !state.pantryEditMode; render(); };
   }
   const saveRecipeBtn = document.getElementById("saverecipebtn");
   if(saveRecipeBtn){
